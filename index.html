@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sari-Sari Store Tycoon (Beta)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Lilita+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game">
+    <header class="hud">
+      <div class="stat" id="who">-</div>
+      <div class="stat" id="moneyStat"></div>
+      <div class="stat" id="timeStat"></div>
+      <div class="stat" id="lives"></div>
+    </header>
+
+    <div class="controls">
+      <button id="openBtn">Open Store</button>
+      <button id="closeBtn" hidden>Close Store</button>
+      <button class="ghost" id="marketBtn">Palengke</button>
+      <button class="ghost" id="profileBtn">Profile</button>
+    </div>
+
+    <section class="store closed" id="store">
+      <div class="roof"></div>
+      <div class="sign"><b id="signName">Tindahan</b><small>SARI-SARI STORE</small></div>
+
+      <div class="wall">
+        <div class="sachets" id="sachets" aria-hidden="true"></div>
+        <div class="decorWall" id="decorWall" aria-hidden="true"></div>
+        <div class="oc" aria-hidden="true"><i></i><i></i><b id="ocText">SARADO</b></div>
+
+        <div class="window">
+          <div class="customer" id="customer"></div>
+          <div class="bubble" id="bubble">Sarado pa ang store.</div>
+          <div class="patience"><div id="patienceBar"></div></div>
+          <div class="shutter"></div>
+        </div>
+
+        <div class="hanging" id="hanging"></div>
+        <div class="shelf" id="shelf"></div>
+        <div class="ledge" id="ledge"></div>
+
+        <div class="counter">
+          <div class="tray" id="tray"></div>
+          <div class="buttons">
+            <button id="giveBtn">Ibigay</button>
+            <button id="clearBtn" class="ghost">Linisin</button>
+          </div>
+          <div class="qrWrap"><div class="qr" id="qr"></div><small>QR ng store</small></div>
+        </div>
+        <p class="msg" id="msg" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <div class="overlay hidden" id="overlay">
+
+      <!-- Profile setup -->
+      <section class="card panel" id="p-setup">
+        <span class="beta">BETA</span>
+        <h1>Gumawa ng Profile</h1>
+        <label>Name mo
+          <input id="inName" maxlength="14" placeholder="hal. Ana" autocomplete="off">
+        </label>
+        <label>Pangalan ng store mo
+          <input id="inStore" maxlength="22" placeholder="hal. Tindahan ni Aling Nena" autocomplete="off">
+        </label>
+        <fieldset><legend>Avatar</legend><div class="choices" id="avatars"></div></fieldset>
+        <fieldset><legend>Bakit ka nagtayo ng sari-sari store?</legend><div class="reasons" id="reasons"></div></fieldset>
+        <p class="err" id="setupErr"></p>
+        <button id="saveBtn">Simulan na ang story</button>
+      </section>
+
+      <!-- Story -->
+      <section class="card panel" id="p-story">
+        <div class="storyIcon" id="storyIcon"></div>
+        <p class="storyText" id="storyText"></p>
+        <div class="dots" id="dots"></div>
+        <button id="nextBtn">Next</button>
+      </section>
+
+      <!-- Profile -->
+      <section class="card panel" id="p-menu">
+        <span class="beta">BETA</span>
+        <div class="bigAvatar" id="mAvatar"></div>
+        <h1 id="mName">-</h1>
+        <p class="sub" id="mStore">-</p>
+        <p class="rank" id="mRank">-</p>
+        <p class="wallet">Pera mo: <span class="coin">₱</span> <b id="mWallet">0</b></p>
+        <div class="stats" id="mStats"></div>
+        <div class="row">
+          <button class="ghost" id="storyBtn">Basahin ulit ang story</button>
+          <button class="ghost" id="editBtn">I-edit ang profile</button>
+        </div>
+        <button id="closeProfileBtn">Balik sa store</button>
+        <button class="link" id="resetBtn">I-reset ang profile</button>
+      </section>
+
+      <!-- Palengke (shop) -->
+      <section class="card panel wide" id="p-shop">
+        <h1>Palengke</h1>
+        <p class="wallet">Pera mo: <span class="coin">₱</span> <b id="wallet">0</b></p>
+        <div class="tabs">
+          <button data-tab="stock">Stock</button>
+          <button data-tab="up">Upgrade</button>
+          <button data-tab="prod">Bagong Paninda</button>
+          <button data-tab="dec">Decor</button>
+        </div>
+        <div class="shopList" id="shopList"></div>
+        <button class="ghost" id="shopBack">Balik sa store</button>
+      </section>
+
+      <!-- Tapos na ang shift -->
+      <section class="card panel" id="p-over">
+        <h1 id="oTitle">Tapos na!</h1>
+        <p id="oText"></p>
+        <button id="againBtn">Open ulit</button>
+        <button class="ghost" id="shopBtn2">Pumunta sa Palengke</button>
+        <button class="ghost" id="backStoreBtn">Balik sa store</button>
+      </section>
+
+    </div>
+  </main>
+  <script src="art.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
