@@ -579,7 +579,7 @@ function giveOrder() {
 function startPay() {
   const ms = 2200 - 500 * lvl("wifi");
   state.pay = { phase: "processing", ms, ms0: ms };
-  say(`<span class="want">${art("pay_phone")}Sige po, i-scan ko na yung QR ninyo...</span><span class="payBar"><i id="payBar"></i></span>`);
+  say(`<span class="sayline">${art("pay_phone")}<span>Sige po, i-scan ko na yung QR ninyo...</span></span><span class="payBar"><i id="payBar"></i></span>`);
   $("qr").classList.add("scan");
   $("giveBtn").textContent = "Nag-i-scan...";
   $("giveBtn").disabled = true;
@@ -598,11 +598,11 @@ function tickPay(dt) {
   $("giveBtn").disabled = false;
   if (Math.random() < 0.25 - 0.1 * lvl("wifi")) {  // isang beses lang ang roll kung pumasok o hindi
     p.phase = "fail";
-    say(`<span class="want">${art("pay_phone")}Ay, ayaw pumasok! Mahina ang signal. Ulitin natin.</span>`);
+    say(`<span class="sayline">${art("pay_phone")}<span>Ay, ayaw pumasok! Mahina ang signal. Ulitin natin.</span></span>`);
     $("giveBtn").textContent = "Ulitin ang Scan";
   } else {
     p.phase = "ok";
-    say(`<span class="want">${art("pay_phone")}Ayan po, nakapag-send na ako! Paki-check po.</span>`);
+    say(`<span class="sayline">${art("pay_phone")}<span>Ayan po, nakapag-send na ako! Paki-check po.</span></span>`);
     $("giveBtn").textContent = "I-check E-wallet";
   }
 }
