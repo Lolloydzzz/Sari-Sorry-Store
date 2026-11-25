@@ -386,20 +386,16 @@ button, .item { touch-action: manipulation; -webkit-user-select: none; user-sele
 /* ===== v6: langit sa labas (umaga/tanghali/hapon/gabi) at achievements ===== */
 html { --sky1: #79c3f0; --sky2: #fde7b4; --sil: #33473a; --sil2: #5d7a66; --ground: #8d8576; --lights: 0; --stars: 0; --cloud: #fff;
        --sx: 20%; --sy: 40%; --sunO: 1; --mx: 50%; --my: 30%; --moonO: 0; }
-body { background: linear-gradient(var(--sky1) 0, var(--sky2) 30%, var(--ground) 30%, #55524d 100%); background-attachment: fixed; }
+body { background: linear-gradient(#f2a35a 0, #f4d596 30%, #8d8576 30%, #55524d 100%); background-attachment: fixed; }
 
-.street {
-  position: relative; height: 112px; margin-bottom: -4px; overflow: hidden;
-  border: 3px solid var(--ink); border-bottom: none; border-radius: 12px 12px 0 0;
-  background: linear-gradient(var(--sky1), var(--sky2));
-}
-.street .sun, .street .moon { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); }
-.street .sun {
+.scene { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: linear-gradient(var(--sky1), var(--sky2)); }
+.scene .sun, .scene .moon { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); }
+.scene .sun {
   left: var(--sx); top: var(--sy); width: 34px; height: 34px; opacity: var(--sunO);
   background: radial-gradient(circle, #fff7c2 0 40%, #ffd84a 70%); box-shadow: 0 0 22px 8px rgba(255, 214, 90, .55);
 }
-.street .moon { left: var(--mx); top: var(--my); width: 26px; height: 26px; opacity: var(--moonO); box-shadow: inset -8px -3px 0 0 #f6f1cf, 0 0 14px 3px rgba(246, 241, 207, .35); }
-.street .stars {
+.scene .moon { left: var(--mx); top: var(--my); width: 26px; height: 26px; opacity: var(--moonO); box-shadow: inset -8px -3px 0 0 #f6f1cf, 0 0 14px 3px rgba(246, 241, 207, .35); }
+.scene .stars {
   position: absolute; inset: 0; opacity: var(--stars); animation: twinkle 3s ease-in-out infinite;
   background:
     radial-gradient(1.5px 1.5px at 8% 18%, #fff, transparent), radial-gradient(1.5px 1.5px at 22% 40%, #fff, transparent),
@@ -407,25 +403,19 @@ body { background: linear-gradient(var(--sky1) 0, var(--sky2) 30%, var(--ground)
     radial-gradient(1px 1px at 70% 12%, #fff, transparent), radial-gradient(1.5px 1.5px at 84% 34%, #fff, transparent),
     radial-gradient(1px 1px at 92% 16%, #fff, transparent), radial-gradient(1px 1px at 46% 44%, #fff, transparent);
 }
-.street .cloud { position: absolute; width: 60px; height: 15px; border-radius: 12px; background: var(--cloud); opacity: .85; animation: drift 60s linear infinite; }
-.street .cloud::before { content: ""; position: absolute; left: 12px; top: -9px; width: 26px; height: 20px; border-radius: 50%; background: inherit; }
-.street .c1 { top: 22px; left: -70px; }
-.street .c2 { top: 48px; left: -70px; animation-duration: 85s; animation-delay: -30s; transform: scale(.8); }
-.street .c3 { top: 12px; left: -70px; animation-duration: 110s; animation-delay: -70s; transform: scale(.65); }
+.scene .cloud { position: absolute; width: 60px; height: 15px; border-radius: 12px; background: var(--cloud); opacity: .85; animation: drift 60s linear infinite; }
+.scene .cloud::before { content: ""; position: absolute; left: 12px; top: -9px; width: 26px; height: 20px; border-radius: 50%; background: inherit; }
+.scene .c1 { top: 22px; left: -70px; }
+.scene .c2 { top: 48px; left: -70px; animation-duration: 85s; animation-delay: -30s; transform: scale(.8); }
+.scene .c3 { top: 12px; left: -70px; animation-duration: 110s; animation-delay: -70s; transform: scale(.65); }
 .skyline { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; }
 .skyline .sil { fill: var(--sil); } .skyline .sil2 { fill: var(--sil2); }
 .skyline .ground { fill: var(--ground); }
 .skyline .win { fill: #ffd36a; opacity: var(--lights); }
 .skyline .line { fill: none; stroke: var(--sil); stroke-width: 1; } .skyline .thick { stroke-width: 3.5; stroke-linecap: round; }
 .skyline .tree { fill: none; stroke: var(--sil); stroke-width: 3; stroke-linecap: round; }
-.phase {
-  position: absolute; top: 6px; left: 8px; padding: 0 10px; font-size: .78rem; font-weight: 800;
-  background: rgba(43, 29, 18, .75); color: var(--cream); border-radius: 10px;
-}
 .roof { border-radius: 0; }
-.sign { box-shadow: 0 5px 0 rgba(0, 0, 0, .3), 0 0 calc(var(--lights) * 22px) rgba(255, 214, 110, calc(var(--lights) * .8)); }
 @keyframes drift { to { transform: translateX(calc(100vw + 140px)); } }
-@media (max-width: 600px) { .street { height: 92px; } }
 
 .toast {
   position: fixed; z-index: 30; left: 50%; top: calc(10px + env(safe-area-inset-top)); transform: translateX(-50%);
@@ -448,3 +438,6 @@ body { background: linear-gradient(var(--sky1) 0, var(--sky2) 30%, var(--ground)
 .aInfo b { display: block; line-height: 1.1; }
 .aInfo span { display: block; font-size: .82rem; }
 .aInfo em { font-size: .78rem; font-style: normal; font-weight: 700; color: #7a4a1f; }
+
+.customer { position: relative; z-index: 1; }
+.window::after { opacity: .38; }   /* rehas ng bintana sa ibabaw ng langit */
