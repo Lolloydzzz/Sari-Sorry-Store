@@ -19,7 +19,7 @@ const PRODUCTS = [
   { id: "water",    name: "Tubig",     price: 15, color: "#3a9bc7", cost: 80 },
   { id: "chips",    name: "Chichirya", price: 14, color: "#d1a21a", cost: 120 },
   { id: "rice",     name: "Bigas",     price: 18, color: "#a8946a", cost: 150 },
-  { id: "load",     name: "Load",      price: 30, color: "#2a9d8f", cost: 200 },
+  { id: "load",     name: "Load",      price: 30, color: "#2a9d8f", cost: 200, special: "load" },
   { id: "sardines", name: "Sardinas",  price: 25, color: "#b02a2a", cost: 250 },
 ];
 
@@ -72,6 +72,11 @@ const COST_SCALE = 3;                   // palakihin/paliitin ang presyo sa Pale
 UPGRADES.forEach((u) => (u.costs = u.costs.map((c) => c * COST_SCALE)));
 PRODUCTS.forEach((p) => { if (p.cost) p.cost *= COST_SCALE; });
 DECOR.forEach((d) => (d.cost *= COST_SCALE));
+const LOAD_AMOUNTS = [10, 15, 20, 30, 50, 100];   // puwedeng ipa-load ng suki
+const LOAD_FEE = (a) => (a >= 50 ? 5 : 3);        // dagdag na bayad bukod sa halaga ng load
+const LOAD_CHANCE = 0.2;                           // gaano kadalas magpa-load ang customer
+const LOAD_CAP = 300;                              // limit ng load wallet (pesos)
+const LOAD_RATE = 0.92;                            // ₱92 ang bili mo sa bawat ₱100 na load
 const START_STOCK = 15;       // stock ng bawat libreng paninda sa simula
 const BASE_CAP = 20;          // limit ng stock bawat paninda
 const EWALLET_CHANCE = 0.4;   // gaano karaming customer ang mag-e-e-wallet
@@ -82,7 +87,7 @@ const SACHET_COLORS = ["#e63946", "#f4a261", "#2a9d8f", "#e9c46a", "#457b9d", "#
 
 const $ = (id) => document.getElementById(id);
 const byId = (id) => PRODUCTS.find((i) => i.id === id);
-const newStats = () => ({ games: 0, best: 0, total: 0, served: 0, changeOk: 0, changeBad: 0, ewallet: 0, hang: 0 });
+const newStats = () => ({ games: 0, best: 0, total: 0, served: 0, changeOk: 0, changeBad: 0, ewallet: 0, hang: 0, loads: 0 });
 
 let profile = normalize(loadProfile());
 let state = null;
@@ -111,8 +116,9 @@ function normalize(p) {
   p.stock = p.stock || {};
   p.ach = p.ach || {};
   PRODUCTS.forEach((x) => {
-    if (p.stock[x.id] === undefined && (x.base || p.owned.includes(x.id))) p.stock[x.id] = x.base ? START_STOCK : 5;
+    if (p.stock[x.id] === undefined && (x.base || p.owned.includes(x.id))) p.stock[x.id] = x.special ? 100 : x.base ? START_STOCK : 5;
   });
+  if (p.owned.includes("load") && !p.loadV2) { p.loadV2 = true; p.stock.load = 100; }   // load wallet na ang stock ng Load
   return p;
 }
 function rankFor(best) {
@@ -124,6 +130,9 @@ function rankFor(best) {
 const lvl = (id) => profile.up[id] || 0;
 const cap = () => BASE_CAP + 10 * lvl("shelf");
 const stockOf = (id) => profile.stock[id] || 0;
+const capOf = (p) => (p.special ? LOAD_CAP + 150 * lvl("shelf") : cap());
+const stepOf = (p) => (p.special ? 100 : 5);
+const costFor = (p, q) => (p.special ? Math.round(q * LOAD_RATE) : q * unitCost(p));
 const unitCost = (p) => Math.max(1, Math.round(p.price * 0.6));   // puhunan bawat piraso
 const available = () => PRODUCTS.filter((p) => p.base || profile.owned.includes(p.id));
 
@@ -230,11 +239,14 @@ function renderShop() {
 
   if (tab === "stock") {
     available().forEach((p) => {
-      const n = stockOf(p.id), space = cap() - n, uc = unitCost(p);
-      const q5 = Math.min(5, space);
-      const b5 = `<button data-act="stock" data-id="${p.id}" data-qty="5" ${q5 <= 0 || profile.wallet < q5 * uc ? "disabled" : ""}>+${q5 || 5} · ₱${q5 * uc}</button>`;
-      const bf = `<button class="ghost" data-act="stock" data-id="${p.id}" data-qty="${space}" ${space <= 0 || profile.wallet < space * uc ? "disabled" : ""}>${space <= 0 ? "Puno na" : `Puno · ₱${space * uc}`}</button>`;
-      html += row(p.id, p.name, `Stock: ${n}/${cap()} · Puhunan ₱${uc} bawat isa`, `<div class="btns">${b5}${bf}</div>`);
+      const n = stockOf(p.id), c = capOf(p), space = c - n, step = stepOf(p);
+      const q5 = Math.min(step, space);
+      const sign = p.special ? "+₱" : "+";
+      const b5 = `<button data-act="stock" data-id="${p.id}" data-qty="${step}" ${q5 <= 0 || profile.wallet < costFor(p, q5) ? "disabled" : ""}>${sign}${q5 || step} · ₱${costFor(p, q5)}</button>`;
+      const bf = `<button class="ghost" data-act="stock" data-id="${p.id}" data-qty="${space}" ${space <= 0 || profile.wallet < costFor(p, space) ? "disabled" : ""}>${space <= 0 ? "Puno na" : `Puno · ₱${costFor(p, space)}`}</button>`;
+      const desc = p.special ? `Load wallet: ₱${n}/₱${c} · ₱${Math.round(100 * LOAD_RATE)} ang bili sa bawat ₱100`
+                             : `Stock: ${n}/${c} · Puhunan ₱${unitCost(p)} bawat isa`;
+      html += row(p.id, p.name, desc, `<div class="btns">${b5}${bf}</div>`);
     });
   } else if (tab === "up") {
     UPGRADES.forEach((u) => {
@@ -244,7 +256,7 @@ function renderShop() {
     });
   } else if (tab === "prod") {
     PRODUCTS.filter((p) => !p.base).forEach((p) => {
-      html += row(p.id, p.name, `Benta ₱${p.price} bawat isa${p.hang ? " · nakasabit" : ""}`,
+      html += row(p.id, p.name, p.special ? "Pa-load ng suki: i-type ang number at halaga. May kita sa bawat load." : `Benta ₱${p.price} bawat isa${p.hang ? " · nakasabit" : ""}`,
         profile.owned.includes(p.id) ? `<button disabled>Meron na</button>` : buy("prod", p.id, p.cost));
     });
   } else {
@@ -274,9 +286,10 @@ function shopAction(act, id, qty) {
   } else if (act === "prod") {
     const p = byId(id);
     if (profile.owned.includes(id) || profile.wallet < p.cost) return;
-    profile.wallet -= p.cost; profile.owned.push(id); profile.stock[id] = 5;   // may free na 5 stock
+    profile.wallet -= p.cost; profile.owned.push(id); profile.stock[id] = p.special ? 100 : 5;   // may libreng panimulang stock
+    if (p.special) profile.loadV2 = true;
   } else if (act === "stock") {
-    const p = byId(id), q = Math.min(qty, cap() - stockOf(id)), cost = q * unitCost(p);
+    const p = byId(id), q = Math.min(qty, capOf(p) - stockOf(id)), cost = costFor(p, q);
     if (q <= 0 || profile.wallet < cost) return;
     profile.wallet -= cost; profile.stock[id] = stockOf(id) + q;
   } else if (act === "dec") {
@@ -309,9 +322,10 @@ function renderShelf() {
   available().forEach((it) => {
     const n = stockOf(it.id);
     const b = document.createElement("button");
-    b.className = "item" + (it.hang ? " hang" : "") + (n <= 0 ? " out" : "");
+    const empty = it.special ? n < LOAD_AMOUNTS[0] : n <= 0;
+    b.className = "item" + (it.hang ? " hang" : "") + (empty ? " out" : "");
     b.style.setProperty("--c", it.color);
-    b.innerHTML = `<span class="stk">${n > 0 ? "x" + n : "Ubos"}</span><span class="e">${art(it.id)}</span><span class="n">${it.name}</span><span class="p">₱${it.price}</span>`;
+    b.innerHTML = `<span class="stk">${empty ? "Ubos" : (it.special ? "₱" : "x") + n}</span><span class="e">${art(it.id)}</span><span class="n">${it.name}</span><span class="p">${it.special ? "Pa-load" : "₱" + it.price}</span>`;
     b.addEventListener("click", () => addToTray(it.id));
     ($(it.hang ? "hanging" : "shelf")).appendChild(b);
   });
@@ -403,8 +417,10 @@ function waiting() {
 const say = (html) => ($("bubble").innerHTML = html);
 
 function nextCustomer() {
-  const pool = available().filter((p) => stockOf(p.id) > 0);
-  if (!pool.length) return endGame("Ubos na ang paninda mo! Mag-restock sa Palengke.");
+  const pool = available().filter((p) => !p.special && stockOf(p.id) > 0);
+  const loadOk = profile.owned.includes("load") && stockOf("load") >= LOAD_AMOUNTS[0];
+  if (!pool.length && !loadOk) return endGame("Ubos na ang paninda mo! Mag-restock sa Palengke.");
+  if (loadOk && (!pool.length || Math.random() < LOAD_CHANCE)) return nextLoadCustomer();
 
   const left = {};
   pool.forEach((p) => (left[p.id] = stockOf(p.id)));
@@ -426,6 +442,7 @@ function nextCustomer() {
   state.hasCustomer = true;
   state.pay = null;
   state.change = null;
+  state.load = null;
   state.method = Math.random() < EWALLET_CHANCE ? "ewallet" : "cash";
   state.cust = Math.floor(Math.random() * PEOPLE.length);
   state.mood = 0;
@@ -470,11 +487,71 @@ function customerLeaves() {
 
 // ===== Tray at pagbibigay ng order =====
 function addToTray(id) {
+  if (byId(id).special) {                              // Load: hindi ilalagay sa tray
+    if (open && state.hasCustomer && state.load && !state.pay) $("ldNum").focus();
+    else setMsg("Pang-load ito. Hintayin ang customer na magpapa-load.", true);
+    return;
+  }
+  if (open && state.load) return setMsg("Pa-load po ito, i-type ang number at halaga.", true);
   if (!open || !state.hasCustomer || state.pay || state.change || state.tray.length >= 6) return;
   const inTray = state.tray.filter((x) => x === id).length;
   if (inTray + 1 > stockOf(id)) return setMsg("Ubos na ang stock niyan!", true);
   state.tray.push(id);
   renderTray();
+}
+
+// ===== Pa-load: i-type ang number (5 digits) at halaga =====
+function nextLoadCustomer() {
+  const amounts = LOAD_AMOUNTS.filter((a) => a <= stockOf("load"));
+  const amount = amounts[Math.floor(Math.random() * amounts.length)];
+  const number = String(10000 + Math.floor(Math.random() * 90000));
+  state.order = ["load"];
+  state.load = { number, amount, fee: LOAD_FEE(amount) };
+  state.tray = [];
+  state.patienceMax = 15000 * state.patMult * PATIENCE_SCALE;
+  state.patience = state.patienceMax;
+  state.hasCustomer = true;
+  state.pay = null;
+  state.change = null;
+  state.method = Math.random() < EWALLET_CHANCE ? "ewallet" : "cash";
+  state.cust = Math.floor(Math.random() * PEOPLE.length);
+  state.mood = 0;
+
+  const c = $("customer");
+  c.innerHTML = personSvg(state.cust, 0);
+  c.className = "customer arrive";
+  const tag = state.method === "ewallet"
+    ? `<span class="payTag">${art("pay_phone")}E-wallet po</span>`
+    : `<span class="payTag">${art("pay_cash")}Cash lang</span>`;
+  say(`<span>Pa-load po!</span><span class="want">${art("load")}₱${amount}</span>` +
+      `<span class="payTag">Number: <b class="ldNumTxt">${number}</b></span>${tag}`);
+  resetPayUI();
+  resetChangeUI();
+  $("counter").hidden = true;                        // form ang lalabas sa halip na tray
+  $("loadForm").hidden = false;
+  $("ldNum").value = "";
+  $("ldAmt").value = "";
+  if (!window.matchMedia?.("(pointer: coarse)").matches) $("ldNum").focus();   // sa phone, ikaw ang pipindot para di biglang lumabas ang keyboard
+  renderTray();
+  updatePatience();
+}
+function sendLoad() {
+  const L = state && state.load;
+  if (!open || !state.hasCustomer || !L || state.pay || state.change) return;
+  const num = $("ldNum").value.trim(), amtTxt = $("ldAmt").value.trim();
+  if (num.length !== 5) return setMsg("5 digits lang po ang number.", true);
+  if (!amtTxt) return setMsg("Ilagay mo kung magkano ang ilo-load.", true);
+  if (num !== L.number || Number(amtTxt) !== L.amount) {
+    state.patience = Math.max(500, state.patience - state.patienceMax * 0.15);
+    setMsg(num !== L.number ? "Ay mali po yung number!" : "Mali po yung halaga ng load!", true);
+    $("bubble").classList.add("shake");
+    setTimeout(() => $("bubble").classList.remove("shake"), 300);
+    window.navigator?.vibrate?.(80);
+    return;
+  }
+  resetChangeUI();                                   // balik ang counter at nakatago ang form
+  setMsg(`Na-send na ang ₱${L.amount} na load!`);
+  state.method === "ewallet" ? startPay() : startChange();
 }
 
 function giveOrder() {
@@ -540,7 +617,8 @@ function finishSale() {
   const total = orderTotal();
   const clean = !state.change || state.change.mistakes === 0;     // walang tip kapag nagkamali sa sukli
   const tip = clean ? Math.ceil((state.patience / state.patienceMax) * 5 * state.tipMult) : 0;
-  state.order.forEach((id) => (profile.stock[id] = Math.max(0, stockOf(id) - 1)));
+  state.order.forEach((id) => (profile.stock[id] = Math.max(0, stockOf(id) - (state.load && id === "load" ? state.load.amount : 1))));
+  if (state.load) profile.stats.loads++;
   state.money += total + tip;
   state.served++;
   if (state.method === "ewallet") profile.stats.ewallet++;
@@ -641,7 +719,7 @@ function clockText(h) {
 }
 
 // ===== Sukli =====
-const orderTotal = () => state.order.reduce((sum, id) => sum + byId(id).price, 0);
+const orderTotal = () => (state.load ? state.load.amount + state.load.fee : state.order.reduce((sum, id) => sum + byId(id).price, 0));
 
 function startChange() {
   const total = orderTotal();
@@ -693,6 +771,7 @@ function confirmChange() {
   window.navigator?.vibrate?.(80);
 }
 function resetChangeUI() {
+  $("loadForm").hidden = true;
   $("patienceBar").parentElement.style.visibility = "";
   $("change").hidden = true;
   $("counter").hidden = false;
@@ -764,6 +843,7 @@ const ACHIEVEMENTS = [
   { id: "no_leave",    name: "Walang Umaalis",     desc: "Buong araw, walang nawalang buhay (20+ customer)", icon: "up_heart", tier: "gold", reward: 150, test: (c) => c.shift.fullDay && c.shift.lives === c.shift.maxLives && c.shift.served >= 20 },
   { id: "sales_500",   name: "Malakas ang Benta",  desc: "₱500 na benta sa isang araw",              icon: "up_tip",    tier: "silver", reward: 100, test: (c) => c.shift.money >= 500 },
   { id: "sales_1500",  name: "Jackpot na Araw",    desc: "₱1,500 na benta sa isang araw",            icon: "r_dream",   tier: "gold",   reward: 300, test: (c) => c.shift.money >= 1500 },
+  { id: "load_10",    name: "Load Master",        desc: "Mag-load para sa 10 customers",            icon: "load",      tier: "silver", reward: 60,  prog: (c) => [c.loads, 10] },
   { id: "hang_20",     name: "Gatas at Tsokolate", desc: "Makabenta ng 20 nakasabit na paninda",     icon: "milk",      tier: "bronze", reward: 50,  prog: (c) => [c.hang, 20] },
   { id: "decor_3",     name: "Pa-Ganda ng Tindahan", desc: "Bumili ng 3 decor",                      icon: "plant",     tier: "bronze", reward: 60,  prog: (c) => [c.decor, 3] },
   { id: "upgrade_5",   name: "Level Up!",          desc: "5 levels ng upgrade sa Palengke",          icon: "up_fan",    tier: "silver", reward: 80,  prog: (c) => [c.ups, 5] },
@@ -776,7 +856,7 @@ function achCtx() {
   const s = profile.stats, live = open && state;
   const sh = state || {};
   return {
-    served: s.served + (live ? state.served : 0), changeOk: s.changeOk, ewallet: s.ewallet, hang: s.hang, games: s.games,
+    served: s.served + (live ? state.served : 0), loads: s.loads, changeOk: s.changeOk, ewallet: s.ewallet, hang: s.hang, games: s.games,
     decor: Object.keys(profile.decor).length, ups: Object.values(profile.up).reduce((a, b) => a + b, 0),
     shift: { money: sh.money || 0, served: sh.served || 0, rushServed: sh.rushServed || 0, chBest: sh.chBest || 0,
              fullDay: !!sh.fullDay, lives: sh.lives, maxLives: sh.maxLives },
@@ -837,6 +917,11 @@ $("shopBack").addEventListener("click", backToStore);
 $("editBtn").addEventListener("click", openSetup);
 $("storyBtn").addEventListener("click", openStory);
 $("resetBtn").addEventListener("click", resetProfile);
+$("ldSend").addEventListener("click", sendLoad);
+["ldNum", "ldAmt"].forEach((id) => {
+  $(id).addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ""); });   // numbers lang
+  $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") sendLoad(); });
+});
 $("achBtn").addEventListener("click", openAch);
 $("achBack").addEventListener("click", openMenu);
 $("giveBtn").addEventListener("click", giveOrder);
