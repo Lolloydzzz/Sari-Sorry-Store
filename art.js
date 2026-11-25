@@ -112,3 +112,16 @@ Object.assign(ART, {
   up_wifi:   ["0 0 48 48", `<path d="M5 18a27 27 0 0 1 38 0M11 25a18 18 0 0 1 26 0M17 32a9 9 0 0 1 14 0" stroke="#2b1d12" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="24" cy="39" r="3.5" fill="#2b1d12"/>`],
   bench:     ["0 0 48 48", `<rect x="4" y="14" width="40" height="5" rx="2" fill="#8b5424"/><rect x="9" y="19" width="3" height="6" fill="#6e4118"/><rect x="36" y="19" width="3" height="6" fill="#6e4118"/><rect x="4" y="25" width="40" height="6" rx="2" fill="#a8692f"/><rect x="8" y="31" width="4" height="13" fill="#6e4118"/><rect x="36" y="31" width="4" height="13" fill="#6e4118"/>`],
 });
+
+
+// ===== v5: pera (bills and coins) para sa sukli =====
+(() => {
+  const bills = { 500: "#e8c93a", 200: "#6fbf73", 100: "#9b7bd1", 50: "#e0627a", 20: "#f0963a" };
+  Object.entries(bills).forEach(([d, c]) => {
+    ART["m" + d] = ["0 0 48 48", `<rect x="2" y="10" width="44" height="28" rx="3" fill="${c}" stroke="#2b1d12" stroke-width="2"/><rect x="6" y="14" width="36" height="20" rx="2" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.5"/><text x="24" y="30" text-anchor="middle" font-size="${d.length > 2 ? 14 : 16}" font-weight="800" fill="#2b1d12" font-family="sans-serif">${d}</text>`];
+  });
+  const coin = (d, r, ring, mid) => ["0 0 48 48", `<circle cx="24" cy="24" r="${r}" fill="${ring}" stroke="#2b1d12" stroke-width="2"/><circle cx="24" cy="24" r="${r - 5}" fill="${mid}"/><text x="24" y="${d === 10 ? 29 : 28.5}" text-anchor="middle" font-size="${d === 10 ? 13 : 12}" font-weight="800" fill="#2b1d12" font-family="sans-serif">${d}</text>`];
+  ART.m10 = coin(10, 19, "#cfd3d6", "#d9b44a");
+  ART.m5 = coin(5, 16, "#cfd3d6", "#e3e6e8");
+  ART.m1 = coin(1, 13, "#cfd3d6", "#e3e6e8");
+})();
