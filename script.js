@@ -722,7 +722,6 @@ const SKY = [
 let sceneKey = -1;
 const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
 const mixColor = (a, b, t) => "#" + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * t).toString(16).padStart(2, "0")).join("");
-const phaseOf = (h) => (h < 11.5 ? "Umaga" : h < 15.5 ? "Tanghali" : h < 18 ? "Hapon" : "Gabi");
 
 function skyAt(h) {
   let i = 0;
@@ -747,7 +746,6 @@ function updateScene() {
   set("--lights", lights.toFixed(2)); set("--stars", stars.toFixed(2)); set("--cloud", cloud);
   set("--sx", sun.x.toFixed(1) + "%"); set("--sy", sun.y.toFixed(1) + "%"); set("--sunO", fade(st).toFixed(2));
   set("--mx", moon.x.toFixed(1) + "%"); set("--my", moon.y.toFixed(1) + "%"); set("--moonO", fade(mt).toFixed(2));
-  $("phaseTag").textContent = phaseOf(h);
 }
 
 // ===== Achievements =====
