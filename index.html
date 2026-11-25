@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#143f45">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Sari-Sari Store Tycoon (Beta)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Lilita+One&display=swap" rel="stylesheet">
@@ -44,15 +47,29 @@
         <div class="shelf" id="shelf"></div>
         <div class="ledge" id="ledge"></div>
 
-        <div class="counter">
-          <div class="tray" id="tray"></div>
-          <div class="buttons">
-            <button id="giveBtn">Ibigay</button>
-            <button id="clearBtn" class="ghost">Linisin</button>
+        <div class="dock">
+          <p class="msg" id="msg" aria-live="polite"></p>
+
+          <div class="counter" id="counter">
+            <div class="tray" id="tray"></div>
+            <div class="buttons">
+              <button id="giveBtn">Ibigay</button>
+              <button id="clearBtn" class="ghost">Linisin</button>
+            </div>
+            <div class="qrWrap"><div class="qr" id="qr"></div><small>QR ng store</small></div>
           </div>
-          <div class="qrWrap"><div class="qr" id="qr"></div><small>QR ng store</small></div>
+
+          <!-- Sukli -->
+          <div class="change" id="change" hidden>
+            <div class="chInfo"><span id="chInfo"></span><b id="chSum">Sukli mo: ₱0</b></div>
+            <div class="bills" id="bills"></div>
+            <div class="chips" id="chList"></div>
+            <div class="buttons">
+              <button id="chGive">Ibigay ang Sukli</button>
+              <button id="chReset" class="ghost">Ulitin</button>
+            </div>
+          </div>
         </div>
-        <p class="msg" id="msg" aria-live="polite"></p>
       </div>
     </section>
 
