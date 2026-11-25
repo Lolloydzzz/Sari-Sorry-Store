@@ -25,7 +25,7 @@ const PRODUCTS = [
 
 const UPGRADES = [
   { id: "shelf", name: "Malaking Estante",  desc: "+10 sa limit ng stock ng bawat paninda", costs: [80, 150, 250] },
-  { id: "time",  name: "Dagdag Oras",       desc: "+10 seconds sa bawat shift",             costs: [60, 120, 200] },
+  { id: "time",  name: "Mas Mahabang Araw", desc: "+30 seconds ang haba ng araw (mas maraming customer)", costs: [60, 120, 200] },
   { id: "fan",   name: "Electric Fan",      desc: "Mas matiyaga ang customer (+15%)",       costs: [50, 100, 180] },
   { id: "wifi",  name: "Mas Malakas na Signal", desc: "Mas mabilis at hindi madalas pumalya ang e-wallet", costs: [60, 120] },
   { id: "tip",   name: "Tip Jar",           desc: "Mas malaki ang tip (+50%)",              costs: [60, 120, 200] },
@@ -64,8 +64,14 @@ const REASONS = {
     "Hindi puwedeng magsara ang tindahan. Itutuloy ni {n} ang {s}. Para kay Lola!" ] },
 };
 
-const GAME_SECONDS = 60;
-const START_LIVES = 3;
+const OPEN_HOUR = 8, CLOSE_HOUR = 22;   // 8 AM hanggang 10 PM
+const DAY_SECONDS = 300;                // 5 minutes sa totoong oras = isang buong araw
+const START_LIVES = 5;
+const DENOMS = [500, 200, 100, 50, 20, 10, 5, 1];   // pera para sa sukli
+const COST_SCALE = 3;                   // palakihin/paliitin ang presyo sa Palengke
+UPGRADES.forEach((u) => (u.costs = u.costs.map((c) => c * COST_SCALE)));
+PRODUCTS.forEach((p) => { if (p.cost) p.cost *= COST_SCALE; });
+DECOR.forEach((d) => (d.cost *= COST_SCALE));
 const START_STOCK = 15;       // stock ng bawat libreng paninda sa simula
 const BASE_CAP = 20;          // limit ng stock bawat paninda
 const EWALLET_CHANCE = 0.4;   // gaano karaming customer ang mag-e-e-wallet
@@ -75,7 +81,7 @@ const SACHET_COLORS = ["#e63946", "#f4a261", "#2a9d8f", "#e9c46a", "#457b9d", "#
 
 const $ = (id) => document.getElementById(id);
 const byId = (id) => PRODUCTS.find((i) => i.id === id);
-const newStats = () => ({ games: 0, best: 0, total: 0, served: 0 });
+const newStats = () => ({ games: 0, best: 0, total: 0, served: 0, changeOk: 0, changeBad: 0 });
 
 let profile = normalize(loadProfile());
 let state = null;
@@ -108,9 +114,9 @@ function normalize(p) {
   return p;
 }
 function rankFor(best) {
-  if (best >= 300) return "Tindahan Legend";
-  if (best >= 150) return "Kilala sa Kanto";
-  if (best >= 50) return "Suki ng Barangay";
+  if (best >= 1500) return "Tindahan Legend";
+  if (best >= 800) return "Kilala sa Kanto";
+  if (best >= 300) return "Suki ng Barangay";
   return "Baguhang Tindero";
 }
 const lvl = (id) => profile.up[id] || 0;
@@ -194,9 +200,10 @@ function openMenu() {
   $("mStore").textContent = profile.store;
   $("mRank").textContent = rankFor(s.best);
   $("mWallet").textContent = profile.wallet;
-  $("mStats").innerHTML =
-    `<div><b>₱${s.best}</b>Pinakamataas na benta</div><div><b>₱${s.total}</b>Total na kita</div>` +
-    `<div><b>${s.games}</b>Shifts</div><div><b>${s.served}</b>Napagbilhan</div>`;
+  const cell = (v, t) => `<div><b>${v}</b>${t}</div>`;
+  $("mStats").innerHTML = cell("₱" + s.best, "Pinakamataas na benta") + cell("₱" + s.total, "Total na kita") +
+    cell(s.games, "Araw na nag-open") + cell(s.served, "Napagbilhan") +
+    cell(s.changeOk, "Tamang sukli") + cell(s.changeBad, "Maling sukli");
   show("menu");
 }
 function resetProfile() {
@@ -334,11 +341,12 @@ function openStore() {
     setMsg("Wala kang paninda! Mag-restock ka muna sa Palengke.", true);
     return openShop();
   }
-  const lives = START_LIVES + lvl("heart");
+  const dayMs = (DAY_SECONDS + 30 * lvl("time")) * 1000;
   state = {
-    money: 0, timeMs: (GAME_SECONDS + 10 * lvl("time")) * 1000, lives, maxLives: lives,
+    money: 0, dayMs, timeMs: dayMs, lives: START_LIVES + lvl("heart"),
     order: [], tray: [], patience: 0, patienceMax: 1, hasCustomer: false,
-    gap: 1500, elapsed: 0, served: 0, cust: 0, mood: 0, method: "cash", pay: null,
+    gap: 1500, elapsed: 0, served: 0, cust: 0, mood: 0, method: "cash", pay: null, change: null,
+    last: performance.now(),
     patMult: 1 + 0.15 * lvl("fan"), tipMult: 1 + 0.5 * lvl("tip"),
   };
   $("signName").textContent = profile.store;
@@ -347,8 +355,9 @@ function openStore() {
   renderShelf();
   renderDecor();
   resetPayUI();
+  resetChangeUI();
   waiting();
-  setMsg("Open na ang store! Antay lang sa unang suki.");
+  setMsg("Open na ang store! 8:00 AM na, antay lang sa unang suki.");
   updateHud();
   renderTray();
   clearInterval(loop);
@@ -356,27 +365,30 @@ function openStore() {
 }
 
 function closeStoreEarly() {
-  if (open) endGame("Nag-close ka na ng store. Ayos!");
+  if (open) endGame("Nag-close ka na ng store nang " + clockText(hourNow()) + ".");
 }
 
 // ===== Game loop =====
 function tick() {
-  state.timeMs -= 100;
-  state.elapsed += 100;
+  const now = performance.now();
+  const dt = Math.min(now - state.last, 250);   // hindi tatalon ang oras kapag naka-background ang tab
+  state.last = now;
+  state.timeMs -= dt;
+  state.elapsed += dt;
   if (state.hasCustomer) {
-    if (state.pay) tickPay();
+    if (state.pay) tickPay(dt);
     else {
-      state.patience -= 100;
+      state.patience -= dt;
       updatePatience();
       if (state.patience <= 0) customerLeaves();
     }
   } else if (state.gap > 0) {
-    state.gap -= 100;
+    state.gap -= dt;
     if (state.gap <= 0) nextCustomer();
   }
   if (!open) return;
   updateHud();
-  if (state.timeMs <= 0) endGame("Time's up! Tapos na ang shift.");
+  if (state.timeMs <= 0) endGame("Closing time na! 10:00 PM na.");
 }
 
 function waiting() {
@@ -393,7 +405,8 @@ function nextCustomer() {
 
   const left = {};
   pool.forEach((p) => (left[p.id] = stockOf(p.id)));
-  const level = Math.min(2, Math.floor(state.elapsed / 20000));
+  const prog = progress();
+  const level = prog < 0.34 ? 0 : prog < 0.67 ? 1 : 2;      // dumadami ang order habang tumatagal ang araw
   const want = 1 + Math.floor(Math.random() * (2 + level));
   state.order = [];
   for (let k = 0; k < want; k++) {
@@ -409,6 +422,7 @@ function nextCustomer() {
   state.patience = state.patienceMax;
   state.hasCustomer = true;
   state.pay = null;
+  state.change = null;
   state.method = Math.random() < EWALLET_CHANCE ? "ewallet" : "cash";
   state.cust = Math.floor(Math.random() * PEOPLE.length);
   state.mood = 0;
@@ -426,6 +440,7 @@ function nextCustomer() {
     : `<span class="payTag">${art("pay_cash")}Cash lang</span>`;
   say(`<span>Pabili po ng</span>${items}${tag}`);
   resetPayUI();
+  resetChangeUI();
   renderTray();
   updatePatience();
 }
@@ -433,8 +448,11 @@ function nextCustomer() {
 function customerGone() {
   state.hasCustomer = false;
   state.pay = null;
+  state.change = null;
   resetPayUI();
-  state.gap = GAP_MIN + Math.random() * (GAP_MAX - GAP_MIN);
+  resetChangeUI();
+  const rush = isRush(hourNow());                              // mas mabilis dumating ang suki pag rush hour
+  state.gap = (GAP_MIN + Math.random() * (GAP_MAX - GAP_MIN)) * (rush ? 0.6 : 1);
   $("customer").className = "customer leave";
   setTimeout(() => { if (state && open && !state.hasCustomer) waiting(); }, 450);
 }
@@ -449,7 +467,7 @@ function customerLeaves() {
 
 // ===== Tray at pagbibigay ng order =====
 function addToTray(id) {
-  if (!open || !state.hasCustomer || state.pay || state.tray.length >= 6) return;
+  if (!open || !state.hasCustomer || state.pay || state.change || state.tray.length >= 6) return;
   const inTray = state.tray.filter((x) => x === id).length;
   if (inTray + 1 > stockOf(id)) return setMsg("Ubos na ang stock niyan!", true);
   state.tray.push(id);
@@ -457,7 +475,7 @@ function addToTray(id) {
 }
 
 function giveOrder() {
-  if (!open || !state.hasCustomer) return;
+  if (!open || !state.hasCustomer || state.change) return;
   if (state.pay) {                                    // e-wallet steps
     if (state.pay.phase === "fail") startPay();
     else if (state.pay.phase === "ok") finishSale();
@@ -466,7 +484,7 @@ function giveOrder() {
   const a = [...state.tray].sort().join(",");
   const b = [...state.order].sort().join(",");
   if (a === b) {
-    state.method === "ewallet" ? startPay() : finishSale();
+    state.method === "ewallet" ? startPay() : startChange();
   } else {
     state.patience = Math.max(500, state.patience - state.patienceMax * 0.15);
     state.tray = [];
@@ -485,8 +503,8 @@ function startPay() {
   $("giveBtn").disabled = true;
   $("clearBtn").disabled = true;
 }
-function tickPay() {
-  state.pay.ms -= 100;
+function tickPay(dt) {
+  state.pay.ms -= dt;
   if (state.pay.ms > 0) return;
   $("qr").classList.remove("scan");
   const fail = Math.random() < 0.25 - 0.1 * lvl("wifi");
@@ -509,12 +527,13 @@ function resetPayUI() {
 }
 
 function finishSale() {
-  const total = state.order.reduce((sum, id) => sum + byId(id).price, 0);
-  const tip = Math.ceil((state.patience / state.patienceMax) * 5 * state.tipMult);
+  const total = orderTotal();
+  const clean = !state.change || state.change.mistakes === 0;     // walang tip kapag nagkamali sa sukli
+  const tip = clean ? Math.ceil((state.patience / state.patienceMax) * 5 * state.tipMult) : 0;
   state.order.forEach((id) => (profile.stock[id] = Math.max(0, stockOf(id) - 1)));
   state.money += total + tip;
   state.served++;
-  const how = state.method === "ewallet" ? "Natanggap na ang e-wallet!" : "Thank you po!";
+  const how = state.method === "ewallet" ? "Natanggap na ang e-wallet!" : "Salamat po!";
   customerGone();
   setMsg(`${how} +₱${total} (tip ₱${tip})`);
   saveProfile();
@@ -524,9 +543,11 @@ function finishSale() {
 
 function endGame(reason) {
   clearInterval(loop);
-  if (state.hasCustomer) state.hasCustomer = false;
+  state.hasCustomer = false;
   state.pay = null;
+  state.change = null;
   resetPayUI();
+  resetChangeUI();
   const s = profile.stats;
   const isBest = state.money > s.best;
   s.games++; s.total += state.money; s.served += state.served;
@@ -546,16 +567,25 @@ function endGame(reason) {
 // ===== Display helpers =====
 function updateHud() {
   if (!profile) return;
-  $("who").innerHTML = `<span class="mini">${personSvg(profile.avatar)}</span>`;
-  $("who").append(document.createTextNode(" " + profile.name));
+  const put = (id, html) => { const el = $(id); if (el._h !== html) { el._h = html; el.innerHTML = html; } };
+  const w = $("who"), key = profile.avatar + "|" + profile.name;
+  if (w._k !== key) {
+    w._k = key;
+    w.innerHTML = `<span class="mini">${personSvg(profile.avatar)}</span>`;
+    w.append(document.createTextNode(" " + profile.name));
+  }
   if (open && state) {
-    $("moneyStat").textContent = "Benta ₱" + state.money;
-    $("timeStat").textContent = Math.max(0, Math.ceil(state.timeMs / 1000)) + "s";
-    $("lives").innerHTML = Array.from({ length: state.maxLives }, (_, i) => heartSvg(i < state.lives)).join("");
+    const h = hourNow();
+    put("moneyStat", "Benta ₱" + state.money);
+    put("timeStat", clockText(h) + (isRush(h) ? ' <span class="rush">Rush</span>' : ""));
+    put("lives", heartSvg(true) + " " + state.lives);
+    const dark = Math.round(Math.min(1, Math.max(0, (h - 17) / 4)) * 20) / 20;   // dumidilim pagkatapos ng 5 PM
+    $("store").style.filter = dark > 0 ? `brightness(${1 - dark * 0.4})` : "";
   } else {
-    $("moneyStat").innerHTML = `Pera <span class="coin">₱</span> ${profile.wallet}`;
-    $("timeStat").textContent = "Sarado";
-    $("lives").innerHTML = "";
+    put("moneyStat", `Pera <span class="coin">₱</span> ${profile.wallet}`);
+    put("timeStat", "Sarado");
+    put("lives", "");
+    $("store").style.filter = "";
   }
 }
 function updatePatience() {
@@ -583,6 +613,81 @@ function setMsg(text, bad = false) {
   $("msg").className = "msg" + (bad ? " bad" : "");
 }
 
+// ===== Oras (8 AM hanggang 10 PM) =====
+const progress = () => 1 - Math.max(0, state.timeMs) / state.dayMs;
+const hourNow = () => OPEN_HOUR + progress() * (CLOSE_HOUR - OPEN_HOUR);
+const isRush = (h) => (h >= 11.5 && h < 13) || (h >= 17 && h < 19.5);   // tanghalian at uwian
+function clockText(h) {
+  const m = Math.round((h * 60) / 5) * 5;                                // tumatalon kada 5 minuto
+  const hh = Math.floor(m / 60) % 24, mm = m % 60;
+  return `${hh % 12 || 12}:${String(mm).padStart(2, "0")} ${hh >= 12 ? "PM" : "AM"}`;
+}
+
+// ===== Sukli =====
+const orderTotal = () => state.order.reduce((sum, id) => sum + byId(id).price, 0);
+
+function startChange() {
+  const total = orderTotal();
+  const cands = [5, 10, 20, 50, 100, 200, 500].filter((d) => d > total);
+  const r = Math.random();
+  const paid = cands[Math.min(r < 0.6 ? 0 : r < 0.9 ? 1 : 2, cands.length - 1)];
+  state.change = { total, paid, need: paid - total, given: [], mistakes: 0 };
+  state.tray = [];
+  state.patienceMax = Math.max(state.patienceMax, 8000);          // may konting dagdag na antay habang nagsusukli
+  state.patience = Math.max(state.patience, 8000);
+  say(`<span>Pa-sukli po!</span><span class="want">${art("m" + paid)}Bayad ₱${paid}</span><span class="payTag">Total ₱${total}</span>`);
+  $("counter").hidden = true;
+  $("change").hidden = false;
+  renderTray();
+  renderChange();
+  updatePatience();
+}
+function renderChange() {
+  const c = state.change;
+  if (!c) return;
+  const sum = c.given.reduce((a, b) => a + b, 0);
+  $("chInfo").textContent = `Total ₱${c.total} · Bayad ₱${c.paid}`;
+  $("chSum").textContent = "Sukli mo: ₱" + sum;
+  $("chList").innerHTML = c.given.map((d, i) => `<button data-i="${i}" aria-label="Alisin ang ₱${d}">${art("m" + d)}</button>`).join("");
+}
+function addChange(d) {
+  if (!state || !state.change || state.change.given.length >= 14) return;
+  state.change.given.push(d);
+  renderChange();
+}
+function confirmChange() {
+  const c = state && state.change;
+  if (!c) return;
+  const sum = c.given.reduce((a, b) => a + b, 0);
+  if (sum === c.need) {
+    profile.stats.changeOk++;
+    return finishSale();
+  }
+  c.mistakes++;
+  profile.stats.changeBad++;
+  state.patience = Math.max(500, state.patience - state.patienceMax * 0.2);
+  setMsg(sum < c.need ? "Kulang po yung sukli ko!" : "Sobra po yung sukli, ibabalik ko po.", true);
+  c.given = [];
+  renderChange();
+  $("bubble").classList.add("shake");
+  setTimeout(() => $("bubble").classList.remove("shake"), 300);
+  window.navigator?.vibrate?.(80);
+}
+function resetChangeUI() {
+  $("change").hidden = true;
+  $("counter").hidden = false;
+}
+function buildBills() {
+  DENOMS.forEach((d) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = art("m" + d);
+    b.setAttribute("aria-label", "₱" + d);
+    b.addEventListener("click", () => addChange(d));
+    $("bills").appendChild(b);
+  });
+}
+
 // ===== Simula =====
 buildSachets();
 buildSetup();
@@ -602,12 +707,20 @@ $("editBtn").addEventListener("click", openSetup);
 $("storyBtn").addEventListener("click", openStory);
 $("resetBtn").addEventListener("click", resetProfile);
 $("giveBtn").addEventListener("click", giveOrder);
-$("clearBtn").addEventListener("click", () => { if (state && open && !state.pay) { state.tray = []; renderTray(); } });
+$("clearBtn").addEventListener("click", () => { if (state && open && !state.pay && !state.change) { state.tray = []; renderTray(); } });
 document.querySelectorAll("#p-shop .tabs button").forEach((b) =>
   b.addEventListener("click", () => { tab = b.dataset.tab; renderShop(); }));
 $("shopList").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-act]");
   if (b && !b.disabled) shopAction(b.dataset.act, b.dataset.id, Number(b.dataset.qty) || 0);
+});
+
+buildBills();
+$("chGive").addEventListener("click", confirmChange);
+$("chReset").addEventListener("click", () => { if (state && state.change) { state.change.given = []; renderChange(); } });
+$("chList").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-i]");
+  if (b && state && state.change) { state.change.given.splice(Number(b.dataset.i), 1); renderChange(); }
 });
 
 setOpenUI(false);
