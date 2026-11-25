@@ -377,3 +377,8 @@ button, .item { touch-action: manipulation; -webkit-user-select: none; user-sele
 }
 @media (max-width: 359px) { .shelf { grid-template-columns: repeat(3, 1fr); } }
 @media (max-height: 520px) and (orientation: landscape) { .window { position: relative; } .dock { position: relative; } }
+
+
+/* e-wallet scan progress (pasulong lang) */
+.payBar { flex-basis: 100%; height: 8px; background: #d8cba8; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; }
+.payBar i { display: block; height: 100%; width: 0; background: #3a9d4f; }
