@@ -82,7 +82,7 @@ const SACHET_COLORS = ["#e63946", "#f4a261", "#2a9d8f", "#e9c46a", "#457b9d", "#
 
 const $ = (id) => document.getElementById(id);
 const byId = (id) => PRODUCTS.find((i) => i.id === id);
-const newStats = () => ({ games: 0, best: 0, total: 0, served: 0, changeOk: 0, changeBad: 0 });
+const newStats = () => ({ games: 0, best: 0, total: 0, served: 0, changeOk: 0, changeBad: 0, ewallet: 0, hang: 0 });
 
 let profile = normalize(loadProfile());
 let state = null;
@@ -109,6 +109,7 @@ function normalize(p) {
   p.owned = p.owned || [];
   p.decor = p.decor || {};
   p.stock = p.stock || {};
+  p.ach = p.ach || {};
   PRODUCTS.forEach((x) => {
     if (p.stock[x.id] === undefined && (x.base || p.owned.includes(x.id))) p.stock[x.id] = x.base ? START_STOCK : 5;
   });
@@ -289,6 +290,7 @@ function shopAction(act, id, qty) {
   renderShop();
   renderDecor();
   renderShelf();
+  checkAchievements();
 }
 
 // ===== Store scene =====
@@ -541,12 +543,16 @@ function finishSale() {
   state.order.forEach((id) => (profile.stock[id] = Math.max(0, stockOf(id) - 1)));
   state.money += total + tip;
   state.served++;
+  if (state.method === "ewallet") profile.stats.ewallet++;
+  state.order.forEach((id) => { if (byId(id).hang) profile.stats.hang++; });
+  if (isRush(hourNow())) state.rushServed = (state.rushServed || 0) + 1;
   const how = state.method === "ewallet" ? "Natanggap na ang e-wallet!" : "Salamat po!";
   customerGone();
   setMsg(`${how} +₱${total} (tip ₱${tip})`);
   saveProfile();
   renderShelf();
   updateHud();
+  checkAchievements();
 }
 
 function endGame(reason) {
@@ -563,9 +569,11 @@ function endGame(reason) {
   profile.wallet += state.money;
   saveProfile();
   setOpenUI(false);
+  state.fullDay = state.timeMs <= 0;
   waiting();
   renderShelf();
   updateHud();
+  checkAchievements();
   $("oTitle").textContent = reason;
   $("oText").innerHTML = `Benta mo ngayon: <b>₱${state.money}</b> (idinagdag sa pera mo)<br>Napagbilhan: ${state.served} customer` +
     (isBest ? "<br>Bagong record!" : `<br>Pinakamataas: ₱${s.best}`);
@@ -574,6 +582,7 @@ function endGame(reason) {
 
 // ===== Display helpers =====
 function updateHud() {
+  updateScene();
   if (!profile) return;
   const put = (id, html) => { const el = $(id); if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const w = $("who"), key = profile.avatar + "|" + profile.name;
@@ -668,10 +677,13 @@ function confirmChange() {
   const sum = c.given.reduce((a, b) => a + b, 0);
   if (sum === c.need) {
     profile.stats.changeOk++;
+    state.chStreak = (state.chStreak || 0) + 1;
+    state.chBest = Math.max(state.chBest || 0, state.chStreak);
     return finishSale();
   }
   c.mistakes++;
   profile.stats.changeBad++;
+  state.chStreak = 0;
   state.patience = Math.max(500, state.patience - state.patienceMax * 0.2);
   setMsg(sum < c.need ? "Kulang po yung sukli ko!" : "Sobra po yung sukli, ibabalik ko po.", true);
   c.given = [];
@@ -696,6 +708,119 @@ function buildBills() {
   });
 }
 
+// ===== Langit sa labas: umaga, tanghali, hapon, gabi (base sa oras ng laro) =====
+// [oras, taas ng langit, baba ng langit, bahay/puno, malayong bahay, kalsada, ilaw, bituin, ulap]
+const SKY = [
+  [8,    "#79c3f0", "#fde7b4", "#33473a", "#5d7a66", "#8d8576", 0,   0,   "#ffffff"],
+  [11.5, "#3f9ae8", "#bfe5fb", "#2f4a35", "#4f7a5a", "#9a9588", 0,   0,   "#ffffff"],
+  [15.5, "#5aa6e6", "#f8e0a8", "#2f4a35", "#4f7a5a", "#9a9588", 0,   0,   "#fff6e0"],
+  [17.5, "#7b6fc0", "#f9a65a", "#2b2f3a", "#4a4560", "#7a6e66", 0.2, 0,   "#ffd7b0"],
+  [18.7, "#2d3270", "#e7805f", "#1b1f33", "#2f3050", "#4e4850", 0.8, 0.2, "#b9a2c0"],
+  [19.8, "#0f1a40", "#2b3b72", "#10142a", "#1d2140", "#3a3a46", 1,   0.9, "#6b7499"],
+  [22,   "#070d28", "#1a2650", "#0b0e20", "#161a33", "#2e2e3a", 1,   1,   "#4a5278"],
+];
+let sceneKey = -1;
+const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+const mixColor = (a, b, t) => "#" + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * t).toString(16).padStart(2, "0")).join("");
+const phaseOf = (h) => (h < 11.5 ? "Umaga" : h < 15.5 ? "Tanghali" : h < 18 ? "Hapon" : "Gabi");
+
+function skyAt(h) {
+  let i = 0;
+  while (i < SKY.length - 2 && h >= SKY[i + 1][0]) i++;
+  const a = SKY[i], b = SKY[i + 1];
+  const t = Math.min(1, Math.max(0, (h - a[0]) / (b[0] - a[0])));
+  return a.map((v, k) => (k === 0 ? h : typeof v === "string" ? mixColor(v, b[k], t) : v + (b[k] - v) * t));
+}
+function updateScene() {
+  const h = state ? hourNow() : OPEN_HOUR;
+  const key = Math.floor(h * 12);                      // nagbabago kada 5 minuto sa laro
+  if (key === sceneKey) return;
+  sceneKey = key;
+  const [, top, bottom, sil, sil2, ground, lights, stars, cloud] = skyAt(h);
+  const arc = (t) => ({ x: 5 + 90 * t, y: 66 - 54 * Math.sin(Math.PI * t) });
+  const fade = (t) => (t < 0 || t > 1 ? 0 : Math.min(1, t * 8, (1 - t) * 8));
+  const st = (h - 6) / 12, mt = (h - 17.5) / 9;
+  const sun = arc(st), moon = arc(Math.min(1, Math.max(0, mt)));
+  const r = document.documentElement.style;
+  const set = (k, v) => r.setProperty(k, v);
+  set("--sky1", top); set("--sky2", bottom); set("--sil", sil); set("--sil2", sil2); set("--ground", ground);
+  set("--lights", lights.toFixed(2)); set("--stars", stars.toFixed(2)); set("--cloud", cloud);
+  set("--sx", sun.x.toFixed(1) + "%"); set("--sy", sun.y.toFixed(1) + "%"); set("--sunO", fade(st).toFixed(2));
+  set("--mx", moon.x.toFixed(1) + "%"); set("--my", moon.y.toFixed(1) + "%"); set("--moonO", fade(mt).toFixed(2));
+  $("phaseTag").textContent = phaseOf(h);
+}
+
+// ===== Achievements =====
+// goal/prog = may progress bar | test = oo/hindi lang | tier = kulay ng medalya
+const ACHIEVEMENTS = [
+  { id: "first_sale",  name: "Unang Benta",        desc: "Makabenta ng unang customer",              icon: "candy",     tier: "bronze", reward: 10,  prog: (c) => [c.served, 1] },
+  { id: "serve_10",    name: "Suki-suki",          desc: "Mapagbilhan ang 10 customers",             icon: "egg",       tier: "bronze", reward: 30,  prog: (c) => [c.served, 10] },
+  { id: "serve_50",    name: "Kilala sa Kanto",    desc: "Mapagbilhan ang 50 customers",             icon: "soda",      tier: "silver", reward: 100, prog: (c) => [c.served, 50] },
+  { id: "serve_200",   name: "Tindahan ng Barangay", desc: "Mapagbilhan ang 200 customers",          icon: "noodles",   tier: "gold",   reward: 300, prog: (c) => [c.served, 200] },
+  { id: "change_10",   name: "Sukli Master",       desc: "10 tamang sukli",                          icon: "m50",       tier: "bronze", reward: 40,  prog: (c) => [c.changeOk, 10] },
+  { id: "change_50",   name: "Mabilis sa Kuwenta", desc: "50 tamang sukli",                          icon: "m500",      tier: "silver", reward: 150, prog: (c) => [c.changeOk, 50] },
+  { id: "streak_8",    name: "Walang Maling Sukli", desc: "8 tamang sukli nang sunod-sunod",         icon: "m100",      tier: "silver", reward: 80,  test: (c) => c.shift.chBest >= 8 },
+  { id: "ewallet_10",  name: "Cashless Na!",       desc: "10 customer ang nag-e-wallet",             icon: "pay_phone", tier: "bronze", reward: 40,  prog: (c) => [c.ewallet, 10] },
+  { id: "rush_8",      name: "Rush Hour Hero",     desc: "8 customer sa isang rush hour",            icon: "up_time",   tier: "silver", reward: 80,  test: (c) => c.shift.rushServed >= 8 },
+  { id: "full_day",    name: "Hanggang 10 PM",     desc: "Tapusin ang buong araw hanggang closing",  icon: "moon",      tier: "silver", reward: 100, test: (c) => c.shift.fullDay },
+  { id: "no_leave",    name: "Walang Umaalis",     desc: "Buong araw, walang nawalang buhay (20+ customer)", icon: "up_heart", tier: "gold", reward: 150, test: (c) => c.shift.fullDay && c.shift.lives === c.shift.maxLives && c.shift.served >= 20 },
+  { id: "sales_500",   name: "Malakas ang Benta",  desc: "₱500 na benta sa isang araw",              icon: "up_tip",    tier: "silver", reward: 100, test: (c) => c.shift.money >= 500 },
+  { id: "sales_1500",  name: "Jackpot na Araw",    desc: "₱1,500 na benta sa isang araw",            icon: "r_dream",   tier: "gold",   reward: 300, test: (c) => c.shift.money >= 1500 },
+  { id: "hang_20",     name: "Gatas at Tsokolate", desc: "Makabenta ng 20 nakasabit na paninda",     icon: "milk",      tier: "bronze", reward: 50,  prog: (c) => [c.hang, 20] },
+  { id: "decor_3",     name: "Pa-Ganda ng Tindahan", desc: "Bumili ng 3 decor",                      icon: "plant",     tier: "bronze", reward: 60,  prog: (c) => [c.decor, 3] },
+  { id: "upgrade_5",   name: "Level Up!",          desc: "5 levels ng upgrade sa Palengke",          icon: "up_fan",    tier: "silver", reward: 80,  prog: (c) => [c.ups, 5] },
+  { id: "games_5",     name: "Araw-araw Open",     desc: "Mag-open ng store ng 5 beses",             icon: "r_family",  tier: "bronze", reward: 60,  prog: (c) => [c.games, 5] },
+];
+const TIERS = { bronze: "#cd7f32", silver: "#b8c0c8", gold: "#f2c230" };
+let toastQ = [], toastBusy = false;
+
+function achCtx() {
+  const s = profile.stats, live = open && state;
+  const sh = state || {};
+  return {
+    served: s.served + (live ? state.served : 0), changeOk: s.changeOk, ewallet: s.ewallet, hang: s.hang, games: s.games,
+    decor: Object.keys(profile.decor).length, ups: Object.values(profile.up).reduce((a, b) => a + b, 0),
+    shift: { money: sh.money || 0, served: sh.served || 0, rushServed: sh.rushServed || 0, chBest: sh.chBest || 0,
+             fullDay: !!sh.fullDay, lives: sh.lives, maxLives: sh.maxLives },
+  };
+}
+const achDone = (a, c) => (a.prog ? a.prog(c)[0] >= a.prog(c)[1] : a.test(c));
+
+function checkAchievements() {
+  if (!profile) return;
+  const c = achCtx();
+  ACHIEVEMENTS.forEach((a) => {
+    if (profile.ach[a.id] || !achDone(a, c)) return;
+    profile.ach[a.id] = Date.now();
+    profile.wallet += a.reward;
+    toastQ.push(a);
+  });
+  if (toastQ.length) { saveProfile(); nextToast(); }
+}
+function nextToast() {
+  if (toastBusy || !toastQ.length) return;
+  toastBusy = true;
+  const a = toastQ.shift(), t = $("toast");
+  t.innerHTML = `<span class="tIcon">${badgeSvg(a.icon, TIERS[a.tier])}</span><span><small>Achievement unlocked!</small><b>${a.name}</b>+₱${a.reward}</span>`;
+  t.hidden = false;
+  t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
+  window.navigator?.vibrate?.(40);
+  setTimeout(() => { t.hidden = true; toastBusy = false; nextToast(); }, 3200);
+}
+function openAch() {
+  const c = achCtx();
+  const done = ACHIEVEMENTS.filter((a) => profile.ach[a.id]).length;
+  $("achCount").textContent = `Nakuha mo na: ${done} / ${ACHIEVEMENTS.length}`;
+  $("achList").innerHTML = ACHIEVEMENTS.map((a) => {
+    const got = !!profile.ach[a.id];
+    const p = a.prog ? a.prog(c) : null;
+    const note = got ? `Nakuha na! +₱${a.reward}` : p ? `${Math.min(p[0], p[1])} / ${p[1]} · Reward ₱${a.reward}` : `Reward ₱${a.reward}`;
+    return `<div class="ach ${got ? "done" : ""}"><div class="aIcon">${badgeSvg(a.icon, TIERS[a.tier])}</div>` +
+      `<div class="aInfo"><b>${a.name}</b><span>${a.desc}</span><em>${note}</em></div></div>`;
+  }).join("");
+  show("ach");
+}
+
 // ===== Simula =====
 buildSachets();
 buildSetup();
@@ -714,6 +839,8 @@ $("shopBack").addEventListener("click", backToStore);
 $("editBtn").addEventListener("click", openSetup);
 $("storyBtn").addEventListener("click", openStory);
 $("resetBtn").addEventListener("click", resetProfile);
+$("achBtn").addEventListener("click", openAch);
+$("achBack").addEventListener("click", openMenu);
 $("giveBtn").addEventListener("click", giveOrder);
 $("clearBtn").addEventListener("click", () => { if (state && open && !state.pay && !state.change) { state.tray = []; renderTray(); } });
 document.querySelectorAll("#p-shop .tabs button").forEach((b) =>
@@ -734,6 +861,7 @@ $("chList").addEventListener("click", (e) => {
 setOpenUI(false);
 renderDecor();
 renderShelf();
+updateScene();
 if (profile) {
   $("signName").textContent = profile.store;
   updateHud();
