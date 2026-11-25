@@ -441,3 +441,20 @@ body { background: linear-gradient(#f2a35a 0, #f4d596 30%, #8d8576 30%, #55524d 
 
 .customer { position: relative; z-index: 1; }
 .window::after { opacity: .38; }   /* rehas ng bintana sa ibabaw ng langit */
+
+/* ===== Pa-load ===== */
+.loadForm {
+  display: grid; gap: 8px; margin-top: 12px; padding: 10px; border: 3px solid var(--ink); border-radius: 6px;
+  background: repeating-linear-gradient(95deg, #8b5424 0 14px, #7a4a1f 14px 16px, #97602b 16px 30px);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, .35);
+}
+.loadForm[hidden] { display: none; }
+.ldRow { display: grid; grid-template-columns: 1.3fr 1fr; gap: 8px; }
+.loadForm label { margin: 0; color: var(--cream); font-weight: 700; font-size: .85rem; text-shadow: 0 1px 2px #000a; }
+.loadForm input {
+  width: 100%; font-size: 16px; font-weight: 800; letter-spacing: .18em; text-align: center; padding: 6px 4px;
+  -webkit-user-select: text; user-select: text;
+}
+.loadForm button { margin: 0; }
+.ldNumTxt { letter-spacing: .16em; }
+@media (max-width: 600px) { .loadForm { margin-top: 0; } }
