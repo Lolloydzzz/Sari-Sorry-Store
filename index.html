@@ -76,6 +76,19 @@
             <div class="qrWrap"><div class="qr" id="qr"></div><small>QR ng store</small></div>
           </div>
 
+          <!-- Pa-load -->
+          <div class="loadForm" id="loadForm" hidden>
+            <div class="ldRow">
+              <label>Number (5 digits)
+                <input id="ldNum" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off" placeholder="_ _ _ _ _">
+              </label>
+              <label>Ilo-load (₱)
+                <input id="ldAmt" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" placeholder="hal. 30">
+              </label>
+            </div>
+            <button id="ldSend">I-send ang Load</button>
+          </div>
+
           <!-- Sukli -->
           <div class="change" id="change" hidden>
             <div class="chInfo"><span id="chInfo"></span><b id="chSum">Sukli mo: ₱0</b></div>
