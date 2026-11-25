@@ -378,7 +378,7 @@ function tick() {
   if (state.hasCustomer) {
     if (state.pay) tickPay(dt);
     else {
-      state.patience -= dt;
+      state.patience -= dt * (state.change ? 0.4 : 1);   // mas mabagal mainip habang nagsusukli
       updatePatience();
       if (state.patience <= 0) customerLeaves();
     }
@@ -497,24 +497,31 @@ function giveOrder() {
 
 // ===== E-wallet payment =====
 function startPay() {
-  state.pay = { phase: "processing", ms: 2200 - 500 * lvl("wifi") };
-  say(`<span class="want">${art("pay_phone")}Sige po, i-scan ko na yung QR ninyo...</span>`);
+  const ms = 2200 - 500 * lvl("wifi");
+  state.pay = { phase: "processing", ms, ms0: ms };
+  say(`<span class="want">${art("pay_phone")}Sige po, i-scan ko na yung QR ninyo...</span><span class="payBar"><i id="payBar"></i></span>`);
   $("qr").classList.add("scan");
+  $("giveBtn").textContent = "Nag-i-scan...";
   $("giveBtn").disabled = true;
   $("clearBtn").disabled = true;
 }
 function tickPay(dt) {
-  state.pay.ms -= dt;
-  if (state.pay.ms > 0) return;
+  const p = state.pay;
+  if (p.phase !== "processing") return;            // tapos na ang scan: hintayin na lang ang pindot ng player
+  p.ms -= dt;
+  if (p.ms > 0) {
+    const bar = $("payBar");
+    if (bar) bar.style.width = Math.min(100, 100 * (1 - p.ms / p.ms0)) + "%";   // pasulong lang ang bar
+    return;
+  }
   $("qr").classList.remove("scan");
-  const fail = Math.random() < 0.25 - 0.1 * lvl("wifi");
   $("giveBtn").disabled = false;
-  if (fail) {
-    state.pay.phase = "fail";
+  if (Math.random() < 0.25 - 0.1 * lvl("wifi")) {  // isang beses lang ang roll kung pumasok o hindi
+    p.phase = "fail";
     say(`<span class="want">${art("pay_phone")}Ay, ayaw pumasok! Mahina ang signal. Ulitin natin.</span>`);
     $("giveBtn").textContent = "Ulitin ang Scan";
   } else {
-    state.pay.phase = "ok";
+    p.phase = "ok";
     say(`<span class="want">${art("pay_phone")}Ayan po, nakapag-send na ako! Paki-check po.</span>`);
     $("giveBtn").textContent = "I-check ang E-wallet";
   }
@@ -633,8 +640,6 @@ function startChange() {
   const paid = cands[Math.min(r < 0.6 ? 0 : r < 0.9 ? 1 : 2, cands.length - 1)];
   state.change = { total, paid, need: paid - total, given: [], mistakes: 0 };
   state.tray = [];
-  state.patienceMax = Math.max(state.patienceMax, 8000);          // may konting dagdag na antay habang nagsusukli
-  state.patience = Math.max(state.patience, 8000);
   say(`<span>Pa-sukli po!</span><span class="want">${art("m" + paid)}Bayad ₱${paid}</span><span class="payTag">Total ₱${total}</span>`);
   $("counter").hidden = true;
   $("change").hidden = false;
