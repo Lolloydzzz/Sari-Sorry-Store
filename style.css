@@ -468,3 +468,11 @@ body { background: linear-gradient(#f2a35a 0, #f4d596 30%, #8d8576 30%, #55524d 
   .oc { top: 20px; z-index: 11; }               /* kita na ang OPEN/SARADO na karatula sa ibabaw ng bintana */
   #giveBtn { font-size: .95rem; padding-left: 8px; padding-right: 8px; }
 }
+
+/* ===== v9: siguradong hindi puputol ang bubble ===== */
+.window { min-width: 0; }
+.bubble { max-width: 100%; }
+.sayline { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.sayline .ico { flex: none; width: 24px; height: 24px; }
+.sayline > span { min-width: 0; }
+.ver { margin: 6px 0 0; font-size: .75rem; opacity: .65; }
