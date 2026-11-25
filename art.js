@@ -125,3 +125,16 @@ Object.assign(ART, {
   ART.m5 = coin(5, 16, "#cfd3d6", "#e3e6e8");
   ART.m1 = coin(1, 13, "#cfd3d6", "#e3e6e8");
 })();
+
+// ===== v6: sun/moon icons at medal para sa achievements =====
+Object.assign(ART, {
+  sun:  ["0 0 48 48", `<g stroke="#e8a317" stroke-width="3" stroke-linecap="round"><path d="M24 3v7M24 38v7M3 24h7M38 24h7M9 9l5 5M34 34l5 5M39 9l-5 5M14 34l-5 5"/></g><circle cx="24" cy="24" r="10" fill="#ffc93c" stroke="#e8a317" stroke-width="2"/>`],
+  moon: ["0 0 48 48", `<path d="M30 6a18 18 0 1 0 12 28A14 14 0 0 1 30 6z" fill="#f4e9a8" stroke="#bfae4a" stroke-width="2"/><circle cx="12" cy="10" r="1.5" fill="#fff"/><circle cx="40" cy="14" r="1.2" fill="#fff"/><circle cx="8" cy="30" r="1.2" fill="#fff"/>`],
+});
+function badgeSvg(key, color) {
+  const a = ART[key] || ART.candy;
+  return `<svg class="ico" viewBox="0 0 56 56" aria-hidden="true"><path d="M16 38l-6 16 10-4 4 6 6-16zM40 38l6 16-10-4-4 6-6-16z" fill="#c9302c"/>` +
+    `<circle cx="28" cy="26" r="22" fill="${color}" stroke="#2b1d12" stroke-width="2.5"/>` +
+    `<circle cx="28" cy="26" r="17" fill="#fff4d6" stroke="#2b1d12" stroke-opacity=".35" stroke-width="1.5"/>` +
+    `<svg x="14" y="12" width="28" height="28" viewBox="${a[0]}">${a[1]}</svg></svg>`;
+}
