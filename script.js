@@ -75,6 +75,7 @@ DECOR.forEach((d) => (d.cost *= COST_SCALE));
 const START_STOCK = 15;       // stock ng bawat libreng paninda sa simula
 const BASE_CAP = 20;          // limit ng stock bawat paninda
 const EWALLET_CHANCE = 0.4;   // gaano karaming customer ang mag-e-e-wallet
+const PATIENCE_SCALE = 1.8;   // mas malaki = mas matagal bago mainip ang customer
 const GAP_MIN = 2500;         // pahinga bago dumating ang next na customer (ms)
 const GAP_MAX = 4500;
 const SACHET_COLORS = ["#e63946", "#f4a261", "#2a9d8f", "#e9c46a", "#457b9d", "#d65db1"];
@@ -378,7 +379,7 @@ function tick() {
   if (state.hasCustomer) {
     if (state.pay) tickPay(dt);
     else {
-      state.patience -= dt * (state.change ? 0.4 : 1);   // mas mabagal mainip habang nagsusukli
+      state.patience -= dt * (state.change ? 0 : 1);   // walang timer habang nagsusukli
       updatePatience();
       if (state.patience <= 0) customerLeaves();
     }
@@ -418,7 +419,7 @@ function nextCustomer() {
   }
 
   state.tray = [];
-  state.patienceMax = (9000 + state.order.length * 3500 - level * 1000) * state.patMult;
+  state.patienceMax = (9000 + state.order.length * 3500 - level * 1000) * state.patMult * PATIENCE_SCALE;
   state.patience = state.patienceMax;
   state.hasCustomer = true;
   state.pay = null;
@@ -643,6 +644,7 @@ function startChange() {
   say(`<span>Pa-sukli po!</span><span class="want">${art("m" + paid)}Bayad ₱${paid}</span><span class="payTag">Total ₱${total}</span>`);
   $("counter").hidden = true;
   $("change").hidden = false;
+  $("patienceBar").parentElement.style.visibility = "hidden";   // tago ang timer habang nagsusukli
   renderTray();
   renderChange();
   updatePatience();
@@ -679,6 +681,7 @@ function confirmChange() {
   window.navigator?.vibrate?.(80);
 }
 function resetChangeUI() {
+  $("patienceBar").parentElement.style.visibility = "";
   $("change").hidden = true;
   $("counter").hidden = false;
 }
