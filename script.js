@@ -374,7 +374,7 @@ function openStore() {
   resetPayUI();
   resetChangeUI();
   waiting();
-  setMsg("Open na ang store! 8:00 AM na, antay lang sa unang suki.");
+  setMsg("Open na ang store! Antay lang sa unang suki.");
   updateHud();
   renderTray();
   clearInterval(loop);
@@ -603,7 +603,7 @@ function tickPay(dt) {
   } else {
     p.phase = "ok";
     say(`<span class="want">${art("pay_phone")}Ayan po, nakapag-send na ako! Paki-check po.</span>`);
-    $("giveBtn").textContent = "I-check ang E-wallet";
+    $("giveBtn").textContent = "I-check E-wallet";
   }
 }
 function resetPayUI() {
