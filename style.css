@@ -458,3 +458,13 @@ body { background: linear-gradient(#f2a35a 0, #f4d596 30%, #8d8576 30%, #55524d 
 .loadForm button { margin: 0; }
 .ldNumTxt { letter-spacing: .16em; }
 @media (max-width: 600px) { .loadForm { margin-top: 0; } }
+
+/* ===== v8: ayos sa phone ===== */
+.window { grid-template-columns: 84px minmax(0, 1fr); }
+.bubble { min-width: 0; overflow-wrap: anywhere; }
+.bubble .want { white-space: normal; }          /* hindi na puputol ang mahabang sinasabi ng customer */
+@media (max-width: 600px) {
+  .window { grid-template-columns: 64px minmax(0, 1fr); }
+  .oc { top: 20px; z-index: 11; }               /* kita na ang OPEN/SARADO na karatula sa ibabaw ng bintana */
+  #giveBtn { font-size: .95rem; padding-left: 8px; padding-right: 8px; }
+}
