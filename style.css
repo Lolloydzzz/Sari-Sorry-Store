@@ -476,3 +476,33 @@ body { background: linear-gradient(#f2a35a 0, #f4d596 30%, #8d8576 30%, #55524d 
 .sayline .ico { flex: none; width: 24px; height: 24px; }
 .sayline > span { min-width: 0; }
 .ver { margin: 6px 0 0; font-size: .75rem; opacity: .65; }
+
+/* ===== v10: suki, events, report, utang, save code, tunog ===== */
+.controls .iconBtn { flex: 0 0 46px; padding: 0; display: grid; place-items: center; }
+.controls .iconBtn .ico { width: 24px; height: 24px; }
+.eventBar { margin: 0 0 8px; padding: 4px 10px; background: #fff6cf; border: 2px solid var(--ink); border-radius: 10px; font-size: .85rem; font-weight: 600; text-align: center; }
+.eventBar[hidden] { display: none; }
+.sukiTag { padding: 0 8px; font-size: .85rem; font-weight: 800; background: #ffd9e6; color: #8a1d4a; border-radius: 12px; }
+.store.rainy .scene { filter: brightness(.75) saturate(.7); }
+.store.rainy .scene::after {
+  content: ""; position: absolute; inset: -20px; pointer-events: none; opacity: .55;
+  background: repeating-linear-gradient(105deg, transparent 0 7px, rgba(255, 255, 255, .55) 7px 8px);
+  animation: rain .45s linear infinite;
+}
+@keyframes rain { to { transform: translate(-10px, 20px); } }
+.store.blackout .wall { filter: brightness(.5); }
+.store.blackout.lamp .wall { filter: brightness(.8); }
+.report { display: grid; gap: 3px; margin: 8px 0; text-align: left; font-size: .92rem; }
+.report div { display: flex; justify-content: space-between; gap: 10px; padding: 1px 0; border-bottom: 1px dashed #cdbf9e; }
+.report div:last-child { border-bottom: 0; }
+.report span:last-child { text-align: right; }
+.utList { display: grid; gap: 8px; max-height: 44vh; overflow-y: auto; margin: 8px 0; padding: 2px; }
+.ut { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; text-align: left; background: #fff; border: 2px solid var(--ink); border-radius: 10px; padding: 6px 8px; }
+.uInfo b { display: block; line-height: 1.1; }
+.uInfo span { font-size: .82rem; }
+.ut .btns button { padding: 2px 8px; font-size: .85rem; }
+.codeText {
+  width: 100%; min-height: 110px; margin: 6px 0; padding: 8px; font-size: 16px; font-family: monospace;
+  border: 3px solid var(--ink); border-radius: 8px; word-break: break-all; resize: vertical;
+  -webkit-user-select: text; user-select: text;
+}
