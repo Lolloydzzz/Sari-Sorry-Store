@@ -9,7 +9,7 @@
   <title>Sari-Sari Store Tycoon (Beta)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Lilita+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <main class="game">
@@ -25,7 +25,10 @@
       <button id="closeBtn" hidden>Close Store</button>
       <button class="ghost" id="marketBtn">Palengke</button>
       <button class="ghost" id="profileBtn">Profile</button>
+      <button class="ghost iconBtn" id="soundBtn" aria-label="Tunog"></button>
     </div>
+
+    <div class="eventBar" id="eventBar" hidden></div>
 
     <section class="store closed" id="store">
       <div class="roof"></div>
@@ -137,15 +140,42 @@
         <p class="sub" id="mStore">-</p>
         <p class="rank" id="mRank">-</p>
         <p class="wallet">Pera mo: <span class="coin">₱</span> <b id="mWallet">0</b></p>
+        <p class="sub" id="mDay"></p>
         <div class="stats" id="mStats"></div>
         <div class="row">
           <button class="ghost" id="storyBtn">Basahin ulit ang story</button>
           <button class="ghost" id="editBtn">I-edit ang profile</button>
         </div>
         <button class="ghost" id="achBtn">Achievements</button>
+        <div class="row">
+          <button class="ghost" id="utangBtn">Kuwaderno ng Utang</button>
+          <button class="ghost" id="codeBtn">Save Code</button>
+        </div>
         <button id="closeProfileBtn">Balik sa store</button>
-        <p class="ver">Version 9 · beta</p>
+        <p class="ver">Version 10 · beta</p>
         <button class="link" id="resetBtn">I-reset ang profile</button>
+      </section>
+
+      <!-- Kuwaderno ng Utang -->
+      <section class="card panel wide" id="p-utang">
+        <h1>Kuwaderno ng Utang</h1>
+        <p class="wallet" id="utTotal"></p>
+        <p class="sub" id="utMsg"></p>
+        <div class="utList" id="utList"></div>
+        <button class="ghost" id="utBack">Balik sa Profile</button>
+      </section>
+
+      <!-- Save Code -->
+      <section class="card panel wide" id="p-code">
+        <h1>Save Code</h1>
+        <p>Kopyahin ito at i-paste sa ibang device para madala ang progress mo. Para i-load ang save mula sa ibang device, i-paste dito ang code at pindutin ang <b>I-load</b>.</p>
+        <textarea class="codeText" id="codeText" spellcheck="false" autocomplete="off"></textarea>
+        <p class="sub" id="codeMsg"></p>
+        <div class="row">
+          <button id="codeCopy">Kopyahin</button>
+          <button class="ghost" id="codeLoad">I-load ang Code</button>
+        </div>
+        <button class="ghost" id="codeBack">Balik sa Profile</button>
       </section>
 
       <!-- Achievements -->
@@ -163,7 +193,8 @@
         <div class="tabs">
           <button data-tab="stock">Stock</button>
           <button data-tab="up">Upgrade</button>
-          <button data-tab="prod">Bagong Paninda</button>
+          <button data-tab="prod">Paninda</button>
+          <button data-tab="price">Presyo</button>
           <button data-tab="dec">Decor</button>
         </div>
         <div class="shopList" id="shopList"></div>
@@ -182,7 +213,7 @@
     </div>
   </main>
   <div class="toast" id="toast" hidden></div>
-  <script src="art.js?v=9"></script>
-  <script src="script.js?v=9"></script>
+  <script src="art.js?v=10"></script>
+  <script src="script.js?v=10"></script>
 </body>
 </html>
