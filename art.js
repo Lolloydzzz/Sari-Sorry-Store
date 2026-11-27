@@ -138,3 +138,13 @@ function badgeSvg(key, color) {
     `<circle cx="28" cy="26" r="17" fill="#fff4d6" stroke="#2b1d12" stroke-opacity=".35" stroke-width="1.5"/>` +
     `<svg x="14" y="12" width="28" height="28" viewBox="${a[0]}">${a[1]}</svg></svg>`;
 }
+
+// ===== v10: kuwaderno, freezer, katulong, lampara, tunog =====
+Object.assign(ART, {
+  book:       ["0 0 48 48", `<rect x="9" y="5" width="30" height="38" rx="3" fill="#b5532f" stroke="#2b1d12" stroke-width="2"/><rect x="14" y="5" width="2.5" height="38" fill="#7a2f12"/><path d="M21 15h13M21 22h13M21 29h9" stroke="#fff4d6" stroke-width="2.5" stroke-linecap="round"/>`],
+  up_freezer: ["0 0 48 48", `<rect x="9" y="4" width="30" height="40" rx="4" fill="#e8f4f8" stroke="#2b1d12" stroke-width="2"/><path d="M9 19h30" stroke="#2b1d12" stroke-width="2"/><rect x="32" y="9" width="3" height="6" rx="1" fill="#2b1d12"/><rect x="32" y="24" width="3" height="10" rx="1" fill="#2b1d12"/><g stroke="#4aa8ee" stroke-width="2" stroke-linecap="round"><path d="M21 25v14M14 32h14M16 27l10 10M26 27L16 37"/></g>`],
+  up_helper:  ["0 0 64 64", personBody(PEOPLE[4], 0)],
+  up_lamp:    ["0 0 48 48", `<path d="M24 3v5M9 9l4 4M39 9l-4 4" stroke="#ffd36a" stroke-width="3" stroke-linecap="round"/><rect x="19" y="12" width="10" height="6" rx="1" fill="#555"/><path d="M15 18h18l4 22H11z" fill="#ffe08a" stroke="#2b1d12" stroke-width="2"/><rect x="13" y="40" width="22" height="5" rx="2" fill="#555"/>`],
+  snd_on:     ["0 0 48 48", `<path d="M5 18h8l11-9v30l-11-9H5z" fill="#2b1d12"/><path d="M30 17q6 7 0 14M35 12q10 12 0 24" stroke="#2b1d12" stroke-width="3" fill="none" stroke-linecap="round"/>`],
+  snd_off:    ["0 0 48 48", `<path d="M5 18h8l11-9v30l-11-9H5z" fill="#2b1d12"/><path d="M30 18l12 12M42 18L30 30" stroke="#c9302c" stroke-width="3.5" stroke-linecap="round"/>`],
+});
