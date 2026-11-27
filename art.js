@@ -148,3 +148,88 @@ Object.assign(ART, {
   snd_on:     ["0 0 48 48", `<path d="M5 18h8l11-9v30l-11-9H5z" fill="#2b1d12"/><path d="M30 17q6 7 0 14M35 12q10 12 0 24" stroke="#2b1d12" stroke-width="3" fill="none" stroke-linecap="round"/>`],
   snd_off:    ["0 0 48 48", `<path d="M5 18h8l11-9v30l-11-9H5z" fill="#2b1d12"/><path d="M30 18l12 12M42 18L30 30" stroke="#c9302c" stroke-width="3.5" stroke-linecap="round"/>`],
 });
+
+// ===== v11: mas magandang decor (may outline, shading at detalye) =====
+const starPts = (cx, cy, R, r, n) => Array.from({ length: n * 2 }, (_, k) => {
+  const a = -Math.PI / 2 + (k * Math.PI) / n, rr = k % 2 ? r : R;
+  return (cx + rr * Math.cos(a)).toFixed(1) + "," + (cy + rr * Math.sin(a)).toFixed(1);
+}).join(" ");
+const FLAG2 = ["#e63946", "#ffd166", "#2a9d8f", "#457b9d", "#f4a261", "#d65db1"];
+const BUNT2 = `<path d="M0 3Q150 17 300 3" fill="none" stroke="#2b1d12" stroke-width="1.8"/>` +
+  Array.from({ length: 12 }, (_, i) => {
+    const x0 = i * 24.5 + 3, x1 = x0 + 19, t = (x0 + 9.5) / 300, y = 3 + 28 * t * (1 - t);
+    return `<path d="M${x0} ${y - 1}L${x1} ${y - 1}L${(x0 + x1) / 2} ${y + 14}z" fill="${FLAG2[i % 6]}" stroke="#2b1d12" stroke-width="1.2" stroke-linejoin="round"/>` +
+      `<path d="M${x0 + 1.5} ${y + 0.5}L${x1 - 1.5} ${y + 0.5}" stroke="#fff" stroke-opacity=".5" stroke-width="1.6" stroke-linecap="round"/>`;
+  }).join("");
+const LIGHTS2 = `<path d="M0 4Q150 28 300 4" fill="none" stroke="#2b1d12" stroke-width="1.8"/>` +
+  Array.from({ length: 9 }, (_, i) => {
+    const x = i * 37.5, t = i / 8, y = 4 + 48 * t * (1 - t) * 1;
+    return `<rect x="${x - 2.5}" y="${y - 1}" width="5" height="5" rx="1" fill="#2b1d12"/>` +
+      `<ellipse class="bulb" cx="${x}" cy="${y + 10}" rx="4.5" ry="6" fill="${FLAG2[i % 6]}" stroke="#2b1d12" stroke-width="1.2"/>` +
+      `<ellipse cx="${x - 1.5}" cy="${y + 8}" rx="1.2" ry="2" fill="#fff" opacity=".7"/>`;
+  }).join("");
+const paintCan = (c) => ["0 0 48 48",
+  `<path d="M8 12q16-14 32 0" fill="none" stroke="#2b1d12" stroke-width="2"/>` +
+  `<path d="M10 15h28l-2.5 27a3 3 0 0 1-3 3H15.5a3 3 0 0 1-3-3z" fill="#cfd4d8" stroke="#2b1d12" stroke-width="2"/>` +
+  `<rect x="11" y="24" width="26" height="14" fill="${c}" stroke="#2b1d12" stroke-width="1.5"/>` +
+  `<ellipse cx="24" cy="14" rx="15" ry="5" fill="${c}" stroke="#2b1d12" stroke-width="2"/>` +
+  `<path d="M13 15v8q0 3 3 3t3-3v-8z" fill="${c}" stroke="#2b1d12" stroke-width="1.5"/>` +
+  `<path d="M16 30h16" stroke="#fff" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/>`];
+
+Object.assign(ART, {
+  bunting: ["0 0 300 26", BUNT2],
+  lights:  ["0 0 300 34", LIGHTS2],
+  bunting_icon: ["0 0 48 48", `<path d="M3 9Q24 24 45 9" fill="none" stroke="#2b1d12" stroke-width="2"/><path d="M6 11.5L16 14.5L11 28z" fill="#e63946" stroke="#2b1d12" stroke-width="1.5" stroke-linejoin="round"/><path d="M18 15L28 16L23 30z" fill="#ffd166" stroke="#2b1d12" stroke-width="1.5" stroke-linejoin="round"/><path d="M30 16L40 14L35 29z" fill="#2a9d8f" stroke="#2b1d12" stroke-width="1.5" stroke-linejoin="round"/>`],
+  lights_icon: ["0 0 48 48", `<path d="M3 10Q24 30 45 10" fill="none" stroke="#2b1d12" stroke-width="2"/>` + [[11.4, 15.8, "#e63946"], [19.8, 18.6, "#ffd166"], [28.2, 18.6, "#2a9d8f"], [36.6, 15.8, "#d65db1"]].map(([x, y, c]) => `<rect x="${x - 2}" y="${y - 1}" width="4" height="4" fill="#2b1d12"/><ellipse cx="${x}" cy="${y + 8}" rx="4" ry="5.5" fill="${c}" stroke="#2b1d12" stroke-width="1.3"/><ellipse cx="${x - 1.3}" cy="${y + 6}" rx="1" ry="1.8" fill="#fff" opacity=".7"/>`).join("")],
+  parol: ["0 0 48 78",
+    `<path d="M24 0v8" stroke="#2b1d12" stroke-width="1.6"/><rect x="21" y="5" width="6" height="5" rx="1.5" fill="#c9a227" stroke="#2b1d12" stroke-width="1.2"/>` +
+    `<path d="M16 44L5 72l12-7z" fill="#e63946" stroke="#2b1d12" stroke-width="1.5" stroke-linejoin="round"/>` +
+    `<path d="M32 44l11 28-12-7z" fill="#e63946" stroke="#2b1d12" stroke-width="1.5" stroke-linejoin="round"/>` +
+    `<path d="M24 46l-8 31 8-8 8 8z" fill="#ffd166" stroke="#2b1d12" stroke-width="1.5" stroke-linejoin="round"/>` +
+    `<polygon points="${starPts(24, 28, 22, 11, 8)}" fill="#e63946" stroke="#2b1d12" stroke-width="2" stroke-linejoin="round"/>` +
+    `<polygon points="${starPts(24, 28, 14, 7, 8)}" fill="#ffd166" stroke="#2b1d12" stroke-width="1.2" stroke-linejoin="round"/>` +
+    `<circle cx="24" cy="28" r="4.2" fill="#fff6c8" stroke="#2b1d12" stroke-width="1.2"/>`],
+  plant: ["0 0 56 64",
+    `<path d="M28 40C16 36 8 24 12 8c12 4 18 16 16 32z" fill="#3fa34d" stroke="#2b1d12" stroke-width="2" stroke-linejoin="round"/>` +
+    `<path d="M28 40C40 36 48 24 44 8c-12 4-18 16-16 32z" fill="#3fa34d" stroke="#2b1d12" stroke-width="2" stroke-linejoin="round"/>` +
+    `<path d="M28 42C21 29 22 13 28 2c6 11 7 27 0 40z" fill="#58c066" stroke="#2b1d12" stroke-width="2" stroke-linejoin="round"/>` +
+    `<path d="M28 40V9M27 32L17 18M29 32l10-14" stroke="#2f7a3a" stroke-width="1.4" fill="none" stroke-linecap="round" opacity=".75"/>` +
+    `<path d="M13 38h30l-3.5 22a3 3 0 0 1-3 2.5H19.5a3 3 0 0 1-3-2.5z" fill="#c8643a" stroke="#2b1d12" stroke-width="2" stroke-linejoin="round"/>` +
+    `<rect x="10" y="34" width="36" height="8" rx="3" fill="#dc7b4c" stroke="#2b1d12" stroke-width="2"/>` +
+    `<path d="M17 47v9" stroke="#e8996c" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>`],
+  cat: ["0 0 64 64",
+    `<path d="M46 53q17-2 14-21" fill="none" stroke="#2b1d12" stroke-width="9" stroke-linecap="round"/>` +
+    `<path d="M46 53q17-2 14-21" fill="none" stroke="#e8a24a" stroke-width="5.2" stroke-linecap="round"/>` +
+    `<path d="M57 38q3 4 2 8" fill="none" stroke="#b9772a" stroke-width="2" stroke-linecap="round"/>` +
+    `<ellipse cx="30" cy="46" rx="17" ry="16" fill="#e8a24a" stroke="#2b1d12" stroke-width="2.5"/>` +
+    `<ellipse cx="30" cy="50" rx="9" ry="11" fill="#f6d9a8"/>` +
+    `<path d="M18 40q3 3 0 8M42 40q-3 3 0 8" stroke="#b9772a" stroke-width="2" fill="none" stroke-linecap="round"/>` +
+    `<ellipse cx="22" cy="60" rx="6.5" ry="3.5" fill="#fff1d6" stroke="#2b1d12" stroke-width="2"/><ellipse cx="38" cy="60" rx="6.5" ry="3.5" fill="#fff1d6" stroke="#2b1d12" stroke-width="2"/>` +
+    `<path d="M21 18L19 3l13 8zM43 18l2-15-13 8z" fill="#e8a24a" stroke="#2b1d12" stroke-width="2.5" stroke-linejoin="round"/>` +
+    `<path d="M23 15l-1-7 6 4zM41 15l1-7-6 4z" fill="#f4a8b0"/>` +
+    `<circle cx="32" cy="24" r="14" fill="#e8a24a" stroke="#2b1d12" stroke-width="2.5"/>` +
+    `<path d="M32 11v5M27 12l1 4M37 12l-1 4" stroke="#b9772a" stroke-width="2" stroke-linecap="round"/>` +
+    `<path d="M24 25q2.5-3 5 0M35 25q2.5-3 5 0" stroke="#2b1d12" stroke-width="2" fill="none" stroke-linecap="round"/>` +
+    `<path d="M30 29h4l-2 2.5z" fill="#e0707c" stroke="#2b1d12" stroke-width="1" stroke-linejoin="round"/>` +
+    `<path d="M32 31.5v1.5M28.5 33.5q3.5 2.5 7 0" stroke="#2b1d12" stroke-width="1.4" fill="none" stroke-linecap="round"/>` +
+    `<path d="M20 29l-9-2M20 32l-9 2M44 29l9-2M44 32l9 2" stroke="#2b1d12" stroke-width="1.2" opacity=".55" stroke-linecap="round"/>`],
+  radio: ["0 0 64 56",
+    `<path d="M46 15L58 3" stroke="#2b1d12" stroke-width="3.6" stroke-linecap="round"/><path d="M46 15L58 3" stroke="#c9c9d1" stroke-width="1.8" stroke-linecap="round"/><circle cx="58" cy="3" r="2.3" fill="#c9302c" stroke="#2b1d12"/>` +
+    `<path d="M16 17q16-15 32 0" fill="none" stroke="#2b1d12" stroke-width="5.2" stroke-linecap="round"/><path d="M16 17q16-15 32 0" fill="none" stroke="#8a8a94" stroke-width="2.4" stroke-linecap="round"/>` +
+    `<rect x="5" y="15" width="54" height="38" rx="7" fill="#d9503a" stroke="#2b1d12" stroke-width="2.5"/>` +
+    `<path d="M9 21q0-4 5-4h36q5 0 5 4" fill="none" stroke="#f08a74" stroke-width="2" stroke-linecap="round"/>` +
+    `<rect x="9" y="21" width="46" height="28" rx="4" fill="#f6e8c8" stroke="#2b1d12" stroke-width="1.5"/>` +
+    `<circle cx="24" cy="35" r="12" fill="#6b4a30" stroke="#2b1d12" stroke-width="1.5"/><g fill="none" stroke="#c9a47a" stroke-width="1.5"><circle cx="24" cy="35" r="8.5"/><circle cx="24" cy="35" r="5"/></g><circle cx="24" cy="35" r="1.8" fill="#c9a47a"/>` +
+    `<rect x="38" y="24" width="15" height="9" rx="1.5" fill="#ffd77a" stroke="#2b1d12" stroke-width="1.3"/><path d="M40.5 31.5v1.5M43.5 30v3M46.5 31.5v1.5M49.5 30v3" stroke="#7a4a1f" stroke-width="1"/><path d="M45 24.8v7.4" stroke="#c9302c" stroke-width="1.5" stroke-linecap="round"/>` +
+    `<circle cx="43" cy="41.5" r="4.4" fill="#3a3a42" stroke="#2b1d12" stroke-width="1.2"/><path d="M43 38.6v2.4" stroke="#ddd" stroke-width="1.2" stroke-linecap="round"/>` +
+    `<circle cx="52" cy="41.5" r="3.2" fill="#3a3a42" stroke="#2b1d12" stroke-width="1.2"/><path d="M52 39.4v1.8" stroke="#ddd" stroke-width="1" stroke-linecap="round"/>`],
+  bench: ["0 0 80 56",
+    `<rect x="12" y="6" width="5" height="26" rx="1.5" fill="#8b5424" stroke="#2b1d12" stroke-width="2"/><rect x="63" y="6" width="5" height="26" rx="1.5" fill="#8b5424" stroke="#2b1d12" stroke-width="2"/>` +
+    `<rect x="8" y="6" width="64" height="8" rx="2.5" fill="#c98a47" stroke="#2b1d12" stroke-width="2"/><rect x="8" y="16" width="64" height="8" rx="2.5" fill="#b9783a" stroke="#2b1d12" stroke-width="2"/>` +
+    `<path d="M13 9.5h54M13 19.5h54" stroke="#e8c08a" stroke-width="1.5" stroke-linecap="round"/>` +
+    `<rect x="9" y="40" width="7" height="14" rx="1.5" fill="#7a4a1f" stroke="#2b1d12" stroke-width="2"/><rect x="64" y="40" width="7" height="14" rx="1.5" fill="#7a4a1f" stroke="#2b1d12" stroke-width="2"/>` +
+    `<rect x="16" y="45" width="48" height="4" fill="#8b5424" stroke="#2b1d12" stroke-width="1.5"/>` +
+    `<rect x="4" y="30" width="72" height="10" rx="3" fill="#d39a55" stroke="#2b1d12" stroke-width="2"/><path d="M9 34h62" stroke="#efcd98" stroke-width="1.5" stroke-linecap="round"/>`],
+  paint_rosas: paintCan("#d98ba8"),
+  paint_dilaw: paintCan("#e5b94a"),
+});
