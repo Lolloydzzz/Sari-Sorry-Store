@@ -36,14 +36,14 @@ const UPGRADES = [
 ];
 
 const DECOR = [
-  { id: "bunting",     name: "Banderitas",      desc: "Makulay na bandera sa harap ng store", cost: 40,  where: "wall" },
+  { id: "bunting",     name: "Banderitas",      desc: "Makulay na bandera sa harap ng store", cost: 40,  where: "wall", icon: "bunting_icon" },
   { id: "plant",       name: "Halaman",         desc: "Pampa-fresh sa estante",               cost: 50,  where: "ledge" },
   { id: "bench",       name: "Bangko",          desc: "Upuan ng mga tambay at suki",          cost: 60,  where: "ledge" },
   { id: "paint_rosas", name: "Pinturang Rosas", desc: "Gawing pink ang dingding",             cost: 80,  paint: "#d98ba8" },
   { id: "paint_dilaw", name: "Pinturang Dilaw", desc: "Gawing dilaw ang dingding",            cost: 80,  paint: "#e5b94a" },
-  { id: "lights",      name: "Christmas Lights",desc: "Kumukutitap na ilaw, Pasko vibes",     cost: 90,  where: "wall" },
+  { id: "lights",      name: "Christmas Lights",desc: "Kumukutitap na ilaw, Pasko vibes",     cost: 90,  where: "wall", icon: "lights_icon" },
   { id: "radio",       name: "Radyo",           desc: "Lumang radyo na may tugtugan",         cost: 100, where: "ledge" },
-  { id: "cat",         name: "Pusa",            desc: "Si Muning, natutulog sa estante",      cost: 120, where: "ledge" },
+  { id: "cat",         name: "Pusa",            desc: "Si Muning, natutulog sa porch",         cost: 120, where: "ledge" },
   { id: "parol",       name: "Parol",           desc: "Nakasabit na parol",                   cost: 150, where: "wall" },
 ];
 
@@ -559,7 +559,7 @@ function renderShop() {
   } else {
     DECOR.forEach((d) => {
       const own = d.id in profile.decor;
-      html += row(d.id, d.name, d.desc,
+      html += row(d.icon || d.id, d.name, d.desc,
         own ? `<button class="ghost" data-act="tog" data-id="${d.id}">${profile.decor[d.id] === "on" ? "Alisin" : "Ilagay"}</button>`
             : buy("dec", d.id, d.cost));
     });
@@ -632,12 +632,16 @@ function renderShelf() {
 }
 function renderDecor() {
   const on = (id) => profile && profile.decor[id] === "on";
+  const wide = ["bunting", "lights"];                     // dalawang kopya para sakop ang buong lapad ng dingding
   const list = (where) => DECOR.filter((d) => d.where === where && on(d.id))
-    .map((d) => `<div class="d-${d.id}">${art(d.id)}</div>`).join("");
+    .map((d) => `<div class="d-${d.id}">${art(d.id)}${wide.includes(d.id) ? art(d.id) : ""}</div>`).join("");
   $("decorWall").innerHTML = list("wall");
+  $("decorWall").classList.toggle("both", on("bunting") && on("lights"));
   $("ledge").innerHTML = list("ledge");
+  const wall = document.querySelector(".wall");
+  wall.classList.toggle("deco", on("bunting") || on("lights"));   // pinapalitan ng banderitas/ilaw ang nakasabit na sachets
   const paint = DECOR.find((d) => d.paint && on(d.id));
-  document.querySelector(".wall").style.setProperty("--wall", paint ? paint.paint : "#4f9a94");
+  wall.style.setProperty("--wall", paint ? paint.paint : "#4f9a94");
 }
 
 // ===== Open / Close ng store =====
