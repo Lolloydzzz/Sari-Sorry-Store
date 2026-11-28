@@ -38,7 +38,7 @@ const UPGRADES = [
 const DECOR = [
   { id: "bunting",     name: "Banderitas",      desc: "Makulay na bandera sa harap ng store", cost: 40,  where: "wall", icon: "bunting_icon" },
   { id: "plant",       name: "Halaman",         desc: "Pampa-fresh sa estante",               cost: 50,  where: "ledge" },
-  { id: "bench",       name: "Bangko",          desc: "Upuan ng mga tambay at suki",          cost: 60,  where: "ledge" },
+    { id: "bench",       name: "Bangko",          desc: "Upuan sa labas ng tindahan, minsan may nagtatambay", cost: 60,  where: "outside" },
   { id: "paint_rosas", name: "Pinturang Rosas", desc: "Gawing pink ang dingding",             cost: 80,  paint: "#d98ba8" },
   { id: "paint_dilaw", name: "Pinturang Dilaw", desc: "Gawing dilaw ang dingding",            cost: 80,  paint: "#e5b94a" },
   { id: "lights",      name: "Christmas Lights",desc: "Kumukutitap na ilaw, Pasko vibes",     cost: 90,  where: "wall", icon: "lights_icon" },
@@ -171,19 +171,20 @@ function eventForDay(day) {      // pareho palagi sa isang araw, kaya may foreca
   return r < 0.2 ? "ulan" : r < 0.32 ? "brownout" : null;
 }
 const sukiLevel = (name) => Math.min(3, Math.floor(((profile.suki[name] || {}).visits || 0) / 3));
-const sukiTag = () => (state.suki ? `<span class="sukiTag">★ ${state.suki.name} · Lv${sukiLevel(state.suki.name)}</span>` : "");
+const sukiTag = () => (state.suki ? `<span class="sukiTag">★ ${state.suki.name} · Lv${sukiLevel(state.suki.name)}</span>` : state.isTambay ? '<span class="sukiTag tambay">Tambay sa bangko</span>' : "");
 const priceOf = (id) => Math.max(1, byId(id).price + (profile.prices[id] || 0));
 const costOf = (id) => (id === "load" && state.load ? Math.round(state.load.amount * LOAD_RATE) : unitCost(byId(id)));
 const utangTotal = () => profile.utang.reduce((sum, u) => sum + u.amount, 0);
 const blackout = () => !!state && open && state.event === "brownout" && hourNow() >= 18 && hourNow() < 20;
-const eventGap = () => (state.event === "ulan" ? 1.35 : state.event === "sahod" ? 0.65 : state.event === "pista" ? 0.8 : 1);
+const eventGap = () => (state.event === "ulan" ? 1.35 : state.event === "sahod" ? 0.65 : state.event === "pista" ? 0.8 : 1) * ((fxActive() && fxActive().gap) || 1);
 function priceFactor() {         // mahal = mas mainipin, mura = mas matiyaga
   let up = 0, down = 0;
   state.order.forEach((id) => { const a = profile.prices[id] || 0; if (a > 0) up += a; else down -= a; });
   return Math.min(1.2, Math.max(0.6, 1 - 0.05 * up + 0.03 * down));
 }
 function pickItem(opts) {
-  const w = (p) => ((state.event === "ulan" && HOT.includes(p.id)) || (state.event === "pista" && FEAST.includes(p.id)) ? 2.5 : 1);
+  const f = fxActive();
+  const w = (p) => ((state.event === "ulan" && HOT.includes(p.id)) || (state.event === "pista" && FEAST.includes(p.id)) || (f && f.items && f.items.includes(p.id)) ? 2.5 : 1);
   let r = Math.random() * opts.reduce((sum, p) => sum + w(p), 0);
   for (const p of opts) { r -= w(p); if (r <= 0) return p; }
   return opts[0];
@@ -225,6 +226,7 @@ const SFX = {
   bell:   [[880, 0, 0.18], [1318, 0.1, 0.35]],
   buzz:   [[150, 0, 0.22, "sawtooth"]],
   jingle: [[660, 0, 0.12], [880, 0.12, 0.12], [1175, 0.24, 0.3]],
+  news:   [[784, 0, 0.1], [784, 0.15, 0.1], [1047, 0.32, 0.3]],
 };
 function sfx(name) {
   if (muted || !SFX[name] || !audio()) return;
@@ -641,9 +643,85 @@ function renderDecor() {
   $("decorWall").classList.toggle("both", on("bunting") && on("lights"));
   $("ledge").innerHTML = list("ledge");
   const wall = document.querySelector(".wall");
-  wall.classList.toggle("deco", on("bunting") || on("lights"));   // pinapalitan ng banderitas/ilaw ang nakasabit na sachets
+  wall.classList.toggle("deco", on("bunting") || on("lights"));
+  document.querySelector(".window").classList.toggle("outdoors", on("bench"));   // may bangketa sa labas ng bintana kapag may bangko
+  renderOutside();   // pinapalitan ng banderitas/ilaw ang nakasabit na sachets
   const paint = DECOR.find((d) => d.paint && on(d.id));
   wall.style.setProperty("--wall", paint ? paint.paint : "#4f9a94");
+}
+
+// ===== Sa labas ng tindahan: bangko at tambay =====
+function renderOutside() {
+  const bench = profile && profile.decor.bench === "on";
+  const sitter = bench && open && state && state.tambay ? `<div class="o-person">${personSvg(state.tambay.avatar)}</div>` : "";
+  $("outside").innerHTML = bench ? `<div class="o-bench">${art("bench")}${sitter}</div>` : "";
+}
+function worldTick() {                         // kada 5 minuto sa laro
+  const key = Math.floor(hourNow() * 12);
+  if (key === state.worldKey) return;
+  state.worldKey = key;
+  if (profile.decor.bench === "on") {
+    if (!state.tambay && Math.random() < 0.05) { state.tambay = { avatar: Math.floor(Math.random() * PEOPLE.length) }; renderOutside(); }
+    else if (state.tambay && Math.random() < 0.07) { state.tambay = null; renderOutside(); }
+  }
+  radioNewsCheck();
+}
+
+// ===== Balita sa radyo (kailangan ng Radyo sa porch) =====
+const NEWS_SLOTS = [8.2, 11.5, 14.5, 17.5, 19.5];       // oras ng laro ng mga balita
+const HEADLINES = [
+  { text: "Basketball league sa barangay court ngayong hapon! Uhaw ang mga manonood, softdrink at tubig ang hanap.", fx: { items: ["soda", "water", "icecandy"] } },
+  { text: "Libreng gupit at medical mission sa barangay hall. Dagsa ang tao ngayon!", fx: { gap: 0.75 } },
+  { text: "Nanalo si Mang Tonyo sa raffle at may handaan sa kanto. Maraming magmemeryenda!", fx: { items: ["chips", "soda", "candy"] } },
+  { text: "Bumaba ang presyo ng bigas sa palengke. Maraming namimili ngayon!", fx: { gap: 0.85 } },
+  { text: "Nagpapraktis ng sayaw ang mga estudyante sa covered court para sa foundation day. Gutom at pagod na sila!", fx: { items: ["pandesal", "coffee", "choco", "milk"] } },
+  { text: "Magsisimula na ang Simbang Gabi sa susunod na linggo. Handa na ba ang mga parol?" },
+  { text: "Pinalitan na ang ilaw sa kanto, mas maliwanag na ang daan pauwi." },
+  { text: "May nawawalang pusang kulay kahel sa kabilang kanto. Paki-tawag po kung nakita." },
+  { text: "Paalala ng barangay: maglinis ng kanal bago ang tag-ulan." },
+  { text: "Bukas na ang bagong tulay sa Barangay San Roque. Mas mabilis na ang biyahe." },
+];
+let newsTimer = null;
+const fxActive = () => (state && state.fx && hourNow() < state.fx.until ? state.fx : null);
+function newsText(slot) {
+  const today = state.event, tom = eventForDay(profile.day + 1);
+  if (slot === NEWS_SLOTS[0]) {
+    const w = { ulan: "Maulan ngayong araw, mas hinahanap ang mainit na kape at pancit.", sahod: "Ngayon ang sahod ng marami, asahan ang dagsa ng mamimili.",
+                pista: "Fiesta sa barangay ngayon, may handaan at programa.", brownout: "May abiso ng brownout mamayang 6 PM hanggang 8 PM." };
+    return `Magandang umaga, mga suki! ${w[today] || "Maaraw at maayos ang panahon ngayong araw."}`;
+  }
+  if (slot === NEWS_SLOTS[3]) {
+    const f = { ulan: "Maulan bukas, magdala ng payong.", sahod: "Bukas ang sahod ng marami, asahan ang dagsa.", pista: "Bukas ang fiesta sa barangay!", brownout: "May brownout bukas ng gabi." };
+    return (today === "brownout" ? "Paalala: brownout mamayang 6 PM hanggang 8 PM, ihanda ang lampara. " : "") + `Weather bukas: ${f[tom] || "maaraw at maayos ang panahon."}`;
+  }
+  state.seenNews = state.seenNews || [];                       // iwas ulit-ulit na balita sa isang araw
+  let fresh = HEADLINES.filter((x) => !state.seenNews.includes(x));
+  if (!fresh.length) { state.seenNews = []; fresh = HEADLINES; }
+  const h = fresh[Math.floor(Math.random() * fresh.length)];
+  state.seenNews.push(h);
+  if (h.fx) state.fx = { until: hourNow() + 2, items: h.fx.items, gap: h.fx.gap };     // may epekto sa susunod na 2 oras
+  return h.text;
+}
+function playNews(text) {
+  $("newsBar").innerHTML = `<span class="nIcon">${art("radio")}</span><span><b>Balita sa radyo:</b> ${text}</span>`;
+  $("newsBar").hidden = false;
+  sfx("news");
+  $("store").classList.add("radioLive");
+  clearTimeout(newsTimer);
+  newsTimer = setTimeout(stopNews, 12000);
+}
+function stopNews() {
+  $("newsBar").hidden = true;
+  $("store").classList.remove("radioLive");
+  clearTimeout(newsTimer);
+}
+function radioNewsCheck() {
+  if (profile.decor.radio !== "on") return;
+  const h = hourNow();
+  const slot = NEWS_SLOTS.find((x) => h >= x && !state.news.includes(x));
+  if (slot === undefined) return;
+  NEWS_SLOTS.filter((x) => x <= h).forEach((x) => { if (!state.news.includes(x)) state.news.push(x); });   // isa lang kada tick
+  playNews(newsText(slot));
 }
 
 // ===== Open / Close ng store =====
@@ -672,12 +750,15 @@ function openStore() {
     patMult: 1 + 0.15 * lvl("fan"), tipMult: 1 + 0.5 * lvl("tip"),
     event: eventForDay(profile.day), sold: {}, cogs: 0, lost: {}, lostMoney: 0, collected: 0, credited: 0,
     helperT: 0, ask: null, asked: false, discount: 0, owe: 0, credit: false, helper: false, payback: null, suki: null, nick: "",
+    news: [], fx: null, worldKey: -1, isTambay: false,
+    tambay: profile.decor.bench === "on" && Math.random() < 0.35 ? { avatar: Math.floor(Math.random() * PEOPLE.length) } : null,
   };
   $("signName").textContent = profile.store;
   $("overlay").classList.add("hidden");
   setOpenUI(true);
   renderShelf();
   renderDecor();
+  stopNews();
   resetPayUI();
   resetChangeUI();
   waiting();
@@ -712,7 +793,7 @@ function tick() {
     state.gap -= dt;
     if (state.gap <= 0) nextCustomer();
   }
-  if (open) helperTick(dt);
+  if (open) { helperTick(dt); worldTick(); }
   if (!open) return;
   updateHud();
   if (state.timeMs <= 0) endGame("Closing time na! 10:00 PM na.");
@@ -774,6 +855,14 @@ function nextCustomer() {
     const sk = SUKI[Math.floor(Math.random() * SUKI.length)], fav = byId(sk.fav);
     state.suki = sk; state.nick = sk.name; state.cust = sk.avatar;
     if (available().includes(fav) && !state.order.includes(sk.fav) && stockOf(sk.fav) >= 1) state.order[0] = sk.fav;
+  }
+  state.isTambay = false;
+  if (!state.suki && state.tambay && Math.random() < 0.3) {         // ang nagtatambay sa bangko ay bibili ng meryenda
+    const snacks = FEAST.map(byId).filter((q) => q && available().includes(q) && stockOf(q.id) >= 1 && !state.order.includes(q.id));
+    if (snacks.length) {
+      state.order[0] = snacks[Math.floor(Math.random() * snacks.length)].id;
+      state.cust = state.tambay.avatar; state.nick = "Tambay"; state.isTambay = true;
+    }
   }
   state.patienceMax *= priceFactor();
   state.patience = state.patienceMax;
@@ -1007,6 +1096,9 @@ function endGame(reason) {
   resetPayUI();
   resetChangeUI();
   stopRadio();
+  stopNews();
+  state.tambay = null;
+  renderOutside();
   const s = profile.stats;
   const isBest = state.money > s.best;
   s.games++; s.total += state.money; s.served += state.served;
@@ -1282,7 +1374,7 @@ function openAch() {
 }
 
 // ===== Version check: tugma ba ang lahat ng file? =====
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 function checkVersions() {
   const bar = $("verBar");
   if (!bar || typeof getComputedStyle !== "function") return;
