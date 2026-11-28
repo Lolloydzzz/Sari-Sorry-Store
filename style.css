@@ -510,7 +510,7 @@ body { background: linear-gradient(#f2a35a 0, #f4d596 30%, #8d8576 30%, #55524d 
 .wall.deco .sachets { display: none; }
 
 /* ===== v12: porch, layers at version check ===== */
-html { --css-version: 12; }
+html { --css-version: 13; }
 .overlay { z-index: 50; }                       /* laging nasa ibabaw ng karatula, bintana at counter */
 .toast { z-index: 60; }
 .oc { z-index: 6; }
@@ -549,3 +549,37 @@ html { --css-version: 12; }
   .ledge .d-cat .ico { height: 56px; }
   .ledge .d-radio .ico { height: 62px; }
 }
+
+/* ===== v13: bangko sa labas, tambay at balita sa radyo ===== */
+.window.outdoors { padding-bottom: 48px; }
+.outside { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; pointer-events: none; }
+.outside::before {                              /* bangketa */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 15px;
+  background: linear-gradient(#cfc8b6, #aaa391); border-top: 2px solid rgba(43, 29, 18, .55);
+}
+.o-bench { position: absolute; right: 14%; bottom: 3px; }
+.o-bench > .ico { height: 46px; width: auto; display: block; }
+.o-person { position: absolute; left: 50%; bottom: 21px; width: 38px; height: 38px; margin-left: -19px; }
+.o-person .ico { width: 100%; height: 100%; }
+@media (max-width: 600px) {
+  .window.outdoors { padding-bottom: 38px; }
+  .outside { height: 38px; }
+  .outside::before { height: 12px; }
+  .o-bench > .ico { height: 37px; }
+  .o-person { width: 31px; height: 31px; margin-left: -15px; bottom: 17px; }
+}
+.sukiTag.tambay { background: #d6ecff; color: #14507a; }
+.newsBar {
+  display: flex; gap: 8px; align-items: center; margin: 0 0 8px; padding: 5px 10px; font-size: .85rem;
+  background: #fff; border: 2px solid var(--ink); border-radius: 10px; animation: newsIn .35s ease-out;
+}
+.newsBar[hidden] { display: none; }
+.newsBar .nIcon { flex: none; width: 34px; height: 30px; }
+.newsBar b { color: var(--red); }
+@keyframes newsIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.store.radioLive .ledge .d-radio::before {      /* sound waves habang may balita */
+  content: ""; position: absolute; right: -10px; top: 8px; width: 16px; height: 16px;
+  border: 3px solid rgba(255, 255, 255, .9); border-left-color: transparent; border-bottom-color: transparent; border-radius: 50%;
+  animation: wave 1s ease-out infinite;
+}
+@keyframes wave { from { opacity: 1; transform: scale(.6); } to { opacity: 0; transform: scale(1.5); } }
