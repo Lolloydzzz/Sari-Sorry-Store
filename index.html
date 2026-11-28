@@ -9,7 +9,7 @@
   <title>Sari-Sari Store Tycoon (Beta)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Lilita+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
   <main class="game">
@@ -30,6 +30,7 @@
     </div>
 
     <div class="eventBar" id="eventBar" hidden></div>
+    <div class="newsBar" id="newsBar" hidden></div>
 
     <section class="store closed" id="store">
       <div class="roof"></div>
@@ -57,6 +58,7 @@
           <rect class="win" x="380" y="56" width="9" height="9"/><rect class="win" x="404" y="56" width="9" height="9"/>
           <rect class="ground" y="64" width="580" height="8"/>
         </svg>
+        <div class="outside" id="outside"></div>
       </div>
           <div class="customer" id="customer"></div>
           <div class="bubble" id="bubble">Sarado pa ang store.</div>
@@ -153,7 +155,7 @@
           <button class="ghost" id="codeBtn">Save Code</button>
         </div>
         <button id="closeProfileBtn">Balik sa store</button>
-        <p class="ver">Version 12 · beta</p>
+        <p class="ver">Version 13 · beta</p>
         <button class="link" id="resetBtn">I-reset ang profile</button>
       </section>
 
@@ -214,7 +216,7 @@
     </div>
   </main>
   <div class="toast" id="toast" hidden></div>
-  <script src="art.js?v=12"></script>
-  <script src="script.js?v=12"></script>
+  <script src="art.js?v=13"></script>
+  <script src="script.js?v=13"></script>
 </body>
 </html>
