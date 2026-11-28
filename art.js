@@ -1,5 +1,5 @@
 // ===== art.js: every picture in the game is drawn with SVG (no emoji) =====
-const ART_VERSION = 12;   // chine-check ng script.js kung bago ang art.js na na-upload
+const ART_VERSION = 13;   // chine-check ng script.js kung bago ang art.js na na-upload
 
 // People: used for the player avatar and the customers
 const PEOPLE = [
