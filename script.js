@@ -338,194 +338,6 @@ function utangAction(act, id) {
   if (!u) return;
   if (act === "burahin") { profile.utang = profile.utang.filter((x) => x !== u); saveProfile(); return renderUtang(`Binura ang utang ni ${u.name}.`); }
   if (u.tried === profile.day) return;
-  u.tried = profile.day;     : 4, fav: "candy" },
-  { name: "Mareng Bing",  avatar: 5, fav: "coffee" },
-  { name: "Tropa Dodong", avatar: 7, fav: "chips" },
-];
-const SUKI_CHANCE = 0.3;
-const HOT = ["coffee", "choco", "milk", "milkbig", "noodles"];
-const FEAST = ["chips", "soda", "icecandy", "candy"];
-const EVENTS = {
-  ulan:     { name: "Maulan ngayon", short: "baka umulan", tip: "Konti ang customer, pero mas gusto nila ang mainit: kape, choco, gatas, pancit." },
-  sahod:    { name: "Sahod day!", short: "Sahod day!", tip: "Dagsa ang suki at mas malalaki ang order." },
-  pista:    { name: "Fiesta sa barangay!", short: "Fiesta!", tip: "Bentang-benta ang chichirya, soft drink, ice candy at candy. Mas malaki ang tip kung may banderitas." },
-  brownout: { name: "May brownout mamayang gabi", short: "baka mawalan ng kuryente", tip: "6 PM hanggang 8 PM: walang kuryente. Cash lang, at mas mainipin ang customer (maliban kung may lampara)." },
-};
-function eventForDay(day) {      // pareho palagi sa isang araw, kaya may forecast para bukas
-  const date = ((day - 1) % 30) + 1;
-  if (date === 15 || date === 30) return "sahod";
-  if (date === 10 || date === 25) return "pista";
-  const r = ((day * 9301 + 49297) % 233280) / 233280;
-  return r < 0.2 ? "ulan" : r < 0.32 ? "brownout" : null;
-}
-const sukiLevel = (name) => Math.min(3, Math.floor(((profile.suki[name] || {}).visits || 0) / 3));
-const sukiTag = () => (state.suki ? `<span class="sukiTag">★ ${state.suki.name} · Lv${sukiLevel(state.suki.name)}</span>` : "");
-const priceOf = (id) => Math.max(1, byId(id).price + (profile.prices[id] || 0));
-const costOf = (id) => (id === "load" && state.load ? Math.round(state.load.amount * LOAD_RATE) : unitCost(byId(id)));
-const utangTotal = () => profile.utang.reduce((sum, u) => sum + u.amount, 0);
-const blackout = () => !!state && open && state.event === "brownout" && hourNow() >= 18 && hourNow() < 20;
-const eventGap = () => (state.event === "ulan" ? 1.35 : state.event === "sahod" ? 0.65 : state.event === "pista" ? 0.8 : 1);
-function priceFactor() {         // mahal = mas mainipin, mura = mas matiyaga
-  let up = 0, down = 0;
-  state.order.forEach((id) => { const a = profile.prices[id] || 0; if (a > 0) up += a; else down -= a; });
-  return Math.min(1.2, Math.max(0.6, 1 - 0.05 * up + 0.03 * down));
-}
-function pickItem(opts) {
-  const w = (p) => ((state.event === "ulan" && HOT.includes(p.id)) || (state.event === "pista" && FEAST.includes(p.id)) ? 2.5 : 1);
-  let r = Math.random() * opts.reduce((sum, p) => sum + w(p), 0);
-  for (const p of opts) { r -= w(p); if (r <= 0) return p; }
-  return opts[0];
-}
-function renderEventBar() {
-  const bar = $("eventBar");
-  if (!profile) { bar.hidden = true; return; }
-  let html = "";
-  if (open && state) {
-    if (state.event) html = `<b>${EVENTS[state.event].name}</b> · ${EVENTS[state.event].tip}`;
-  } else {
-    const t = eventForDay(profile.day), n = eventForDay(profile.day + 1);
-    html = `Araw ${profile.day}` + (t ? ` · <b>${EVENTS[t].name}</b>` : "") + (n ? ` · Bukas: ${EVENTS[n].short}` : "");
-  }
-  if (bar._h !== html) { bar._h = html; bar.innerHTML = html; }
-  bar.hidden = !html;
-  const st = $("store").classList;
-  st.toggle("rainy", !!(open && state && state.event === "ulan"));
-  st.toggle("blackout", blackout());
-  st.toggle("lamp", !!lvl("lamp"));
-}
-
-// ----- Tunog -----
-let audioCtx = null, muted = false, radioTimer = null, radioStep = 0;
-try { muted = localStorage.getItem("sariSariMute") === "1"; } catch (e) {}
-function audio() {
-  if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
-  if (audioCtx.state === "suspended") audioCtx.resume();
-  return audioCtx;
-}
-function tone(f, at, dur, type = "sine", vol = 0.12) {
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.type = type; o.frequency.value = f;
-  g.gain.setValueAtTime(vol, at); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-  o.connect(g); g.connect(audioCtx.destination); o.start(at); o.stop(at + dur + 0.02);
-}
-const SFX = {
-  coin:   [[988, 0, 0.09], [1319, 0.09, 0.28]],
-  bell:   [[880, 0, 0.18], [1318, 0.1, 0.35]],
-  buzz:   [[150, 0, 0.22, "sawtooth"]],
-  jingle: [[660, 0, 0.12], [880, 0.12, 0.12], [1175, 0.24, 0.3]],
-};
-function sfx(name) {
-  if (muted || !SFX[name] || !audio()) return;
-  const t = audioCtx.currentTime;
-  SFX[name].forEach(([f, d0, d, type]) => tone(f, t + d0, d, type || "sine"));
-}
-const TUNE = [392, 440, 523, 440, 392, 330, 392, 0, 440, 523, 587, 523, 440, 392, 330, 0];
-function startRadio() {          // may tugtog lang kung may Radyo sa decor
-  stopRadio();
-  if (muted || !profile || profile.decor.radio !== "on") return;
-  radioTimer = setInterval(() => {
-    if (muted || !audio()) return;
-    const f = TUNE[radioStep++ % TUNE.length];
-    if (f) tone(f, audioCtx.currentTime, 0.4, "triangle", 0.05);
-  }, 450);
-}
-function stopRadio() { clearInterval(radioTimer); radioTimer = null; }
-function updateSoundBtn() {
-  $("soundBtn").innerHTML = art(muted ? "snd_off" : "snd_on");
-  $("soundBtn").setAttribute("aria-label", muted ? "I-on ang tunog" : "I-off ang tunog");
-}
-function toggleMute() {
-  muted = !muted;
-  try { localStorage.setItem("sariSariMute", muted ? "1" : "0"); } catch (e) {}
-  if (muted) stopRadio(); else { if (open) startRadio(); sfx("coin"); }
-  updateSoundBtn();
-}
-
-// ----- Utang, tawad, kulang -----
-function addUtang(amount) {
-  const lv = state.suki ? sukiLevel(state.suki.name) : 0;
-  profile.nextUtang = (profile.nextUtang || 0) + 1;
-  profile.utang.push({ id: profile.nextUtang, name: state.nick, amount, day: profile.day,
-    due: profile.day + 1 + Math.floor(Math.random() * 3), reliable: Math.random() < (lv > 0 ? 0.9 : 0.6), tried: 0 });
-  if (profile.utang.length > 30) profile.utang.shift();
-  state.credited += amount;
-}
-function proceedPayment() {
-  if (state.ask && !state.asked) { state.asked = true; return askDecision(state.ask); }
-  state.method === "ewallet" ? startPay() : startChange();
-}
-function askDecision(kind) {
-  const base = baseTotal(), name = state.nick;
-  let text, yes, no;
-  if (kind === "utang") {
-    text = `Si ${name} po ito. Paki-lista muna po, bayaran ko sa sahod!`; yes = "I-lista sa Utang"; no = "Hindi po";
-  } else if (kind === "tawad") {
-    state.askOff = Math.max(1, Math.min(5, Math.round(base * 0.1)));
-    text = `Pwede po bang tawad? ₱${Math.max(1, base - state.askOff)} na lang po sana.`; yes = `Pumayag (−₱${state.askOff})`; no = "Hindi po";
-  } else {
-    state.askOff = Math.min(base - 1, 1 + Math.floor(Math.random() * 3));
-    text = `Kulang po ng ₱${state.askOff} ang pera ko. Bukas ko na lang po dagdagan?`; yes = "Okay lang"; no = "Bayaran mo ng buo";
-  }
-  state.pay = { phase: "decide", kind };
-  say(`<span class="sayline">${art(kind === "utang" ? "book" : "pay_cash")}<span>${text}</span></span>`);
-  $("giveBtn").textContent = yes; $("giveBtn").disabled = false;
-  $("clearBtn").textContent = no; $("clearBtn").disabled = false;
-}
-function decisionYes() {
-  const k = state.pay.kind;
-  state.pay = null; resetPayUI();
-  if (k === "utang") { state.credit = true; return finishSale(); }
-  state.discount = state.askOff;
-  if (k === "kulang") state.owe = state.askOff;       // ang kulang ay mapupunta sa utang
-  proceedPayment();
-}
-function decisionNo() {
-  const k = state.pay.kind;
-  state.pay = null; resetPayUI();
-  if (k === "kulang") { state.patience = Math.max(500, state.patience - state.patienceMax * 0.1); return proceedPayment(); }
-  if (k === "tawad" && Math.random() < 0.6) { setMsg("Sige po, full price na nga. Salamat!"); return proceedPayment(); }
-  setMsg(k === "utang" ? "Sige po, babalik na lang ako." : "Ay ayaw po? Sa iba na lang ako.", true);
-  sfx("buzz");
-  customerGone();
-}
-function nextPayback(u) {        // customer na magbabayad ng utang
-  Object.assign(state, { order: [], tray: [], hasCustomer: true, change: null, load: null, ask: null, asked: false,
-    discount: 0, owe: 0, credit: false, helper: false, method: "cash", mood: 0, payback: u, nick: u.name });
-  state.suki = SUKI.find((x) => x.name === u.name) || null;
-  state.cust = state.suki ? state.suki.avatar : u.id % PEOPLE.length;
-  state.patienceMax = 20000; state.patience = 20000;
-  const c = $("customer"); c.innerHTML = personSvg(state.cust, 0); c.className = "customer arrive";
-  resetPayUI(); resetChangeUI(); renderTray(); updatePatience();
-  state.pay = { phase: "payback" };
-  say(`<span class="sayline">${art("book")}<span>Si ${u.name} po ito. Magbabayad na ako ng utang ko: ₱${u.amount}!</span></span>`);
-  $("giveBtn").textContent = "Tanggapin ang Bayad"; $("clearBtn").disabled = true;
-  sfx("bell");
-}
-function finishPayback() {
-  const u = state.payback;
-  profile.utang = profile.utang.filter((x) => x.id !== u.id);
-  profile.stats.paidBack++;
-  state.money += u.amount; state.collected += u.amount;
-  setMsg(`Bayad na ang utang ni ${u.name}! +₱${u.amount}`);
-  sfx("coin");
-  customerGone();
-  saveProfile(); updateHud(); checkAchievements();
-}
-function openUtang() { renderUtang(); show("utang"); }
-function renderUtang(msg) {
-  $("utTotal").textContent = `Kabuuang utang: ₱${utangTotal()}`;
-  $("utMsg").textContent = msg || "";
-  $("utList").innerHTML = profile.utang.length
-    ? profile.utang.map((u) => `<div class="ut"><div class="uInfo"><b>${u.name}</b><span>₱${u.amount} · mula Araw ${u.day}</span></div>` +
-        `<div class="btns"><button data-act="singil" data-id="${u.id}" ${u.tried === profile.day ? "disabled" : ""}>Singilin</button>` +
-        `<button class="ghost" data-act="burahin" data-id="${u.id}">Burahin</button></div></div>`).join("")
-    : "<p>Walang utang ngayon. Ayos!</p>";
-}
-function utangAction(act, id) {
-  const u = profile.utang.find((x) => x.id === Number(id));
-  if (!u) return;
-  if (act === "burahin") { profile.utang = profile.utang.filter((x) => x !== u); saveProfile(); return renderUtang(`Binura ang utang ni ${u.name}.`); }
-  if (u.tried === profile.day) return;
   u.tried = profile.day;                                  // isang singil lang bawat araw
   if (Math.random() < (u.reliable ? 0.8 : 0.2)) {
     profile.wallet += u.amount; profile.stats.paidBack++;
@@ -821,7 +633,9 @@ function renderShelf() {
 function renderDecor() {
   const on = (id) => profile && profile.decor[id] === "on";
   const wide = ["bunting", "lights"];                     // dalawang kopya para sakop ang buong lapad ng dingding
+  const ORDER = ["plant", "bench", "cat", "radio"];       // ayos sa porch: ang pusa ay uupo sa bangko
   const list = (where) => DECOR.filter((d) => d.where === where && on(d.id))
+    .sort((x, y) => ORDER.indexOf(x.id) - ORDER.indexOf(y.id))
     .map((d) => `<div class="d-${d.id}">${art(d.id)}${wide.includes(d.id) ? art(d.id) : ""}</div>`).join("");
   $("decorWall").innerHTML = list("wall");
   $("decorWall").classList.toggle("both", on("bunting") && on("lights"));
@@ -1467,6 +1281,21 @@ function openAch() {
   show("ach");
 }
 
+// ===== Version check: tugma ba ang lahat ng file? =====
+const APP_VERSION = 12;
+function checkVersions() {
+  const bar = $("verBar");
+  if (!bar || typeof getComputedStyle !== "function") return;
+  const css = Number(getComputedStyle(document.documentElement).getPropertyValue("--css-version")) || 0;
+  const artV = typeof ART_VERSION === "undefined" ? 0 : ART_VERSION;
+  const old = [];
+  if (artV < APP_VERSION) old.push("art.js");
+  if (css < APP_VERSION) old.push("style.css");
+  if (!old.length) return;
+  bar.textContent = `Luma pa ang ${old.join(" at ")} mo. I-upload ang pinakabagong bersyon ng lahat ng file, tapos mag-hard refresh.`;
+  bar.hidden = false;
+}
+
 // ===== Simula =====
 buildSachets();
 buildSetup();
@@ -1527,6 +1356,7 @@ $("chList").addEventListener("click", (e) => {
 });
 
 setOpenUI(false);
+checkVersions();
 renderDecor();
 renderShelf();
 updateScene();
